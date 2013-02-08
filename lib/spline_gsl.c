@@ -17,7 +17,7 @@
 
 typedef struct {
     gsl_interp *interp;
-    gsl_interp_type *type;
+    gsl_interp_type const *type;
     gsl_interp_accel *accel;
     size_t len;
     simple_array *xsa;
@@ -46,7 +46,7 @@ spline_alloc( SPLINE * s, size_t data_len_guess )
 }
 
 SPLINE *
-spline_init( void *type )
+spline_init( void const *type )
 {
     SPLINE *s;
 
