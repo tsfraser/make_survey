@@ -70,7 +70,7 @@ typedef struct {
     MANGLE_POLY *poly;
     MANGLE_INT pix_res;
     DATA_LIST *pix;             /* pixel-indexed array of linked-lists */
-} PLY;
+} MANGLE_PLY;
 
 enum {
     PLY_PIX_NONE = 0,
@@ -83,7 +83,7 @@ ply_poly_alloc( MANGLE_POLY * p, const MANGLE_INT polyid, const MANGLE_INT ncap,
                 const double weight, const MANGLE_INT pixel, const double area )
 {
     p->polyid = polyid;
-    p->cap = check_alloc( ncap, sizeof( MANGLE_CAP ) );
+    p->cap = ( MANGLE_CAP * ) check_alloc( ncap, sizeof( MANGLE_CAP ) );
     p->ncap = ncap;
     p->weight = weight;
     p->pixel = pixel;
@@ -102,10 +102,10 @@ ply_poly_clean( MANGLE_POLY * p )
 }
 
 void
-ply_alloc( PLY * ply, MANGLE_INT npoly )
+ply_alloc( MANGLE_PLY * ply, MANGLE_INT npoly )
 {
     if( npoly > 0 ) {
-        ply->poly = check_alloc( npoly, sizeof( MANGLE_POLY ) );
+        ply->poly = ( MANGLE_POLY * ) check_alloc( npoly, sizeof( MANGLE_POLY ) );
     } else {
         ply->poly = NULL;
     }
@@ -114,7 +114,7 @@ ply_alloc( PLY * ply, MANGLE_INT npoly )
 }
 
 void
-ply_clean( PLY * ply )
+ply_clean( MANGLE_PLY * ply )
 {
     MANGLE_INT i;
     MANGLE_POLY *p;
@@ -127,17 +127,17 @@ ply_clean( PLY * ply )
     ply->pix_res = 0;
 }
 
-PLY *
+MANGLE_PLY *
 ply_init( MANGLE_INT npoly )
 {
-    PLY *ply;
-    ply = check_alloc( 1, sizeof( PLY ) );
+    MANGLE_PLY *ply;
+    ply = ( MANGLE_PLY * ) check_alloc( 1, sizeof( MANGLE_PLY ) );
     ply_alloc( ply, npoly );
     return ply;
 }
 
-PLY *
-ply_kill( PLY * ply )
+MANGLE_PLY *
+ply_kill( MANGLE_PLY * ply )
 {
     ply_clean( ply );
     CHECK_FREE( ply );
@@ -145,7 +145,7 @@ ply_kill( PLY * ply )
 }
 
 void
-ply_read_file_into( PLY * const ply, const char const *filename )
+ply_read_file_into( MANGLE_PLY * const ply, char const *const filename )
 {
     /* read in polygon format */
     int check;
@@ -156,7 +156,7 @@ ply_read_file_into( PLY * const ply, const char const *filename )
 
     ply_clean( ply );
 
-    /* read-by-line and process PLY format file */
+    /* read-by-line and process MANGLE_PLY format file */
     sr = sr_init( filename );
 
     /* first line sets up the polygons */
@@ -231,10 +231,10 @@ ply_read_file_into( PLY * const ply, const char const *filename )
     }
 }
 
-PLY *
-ply_read_file( const char const *filename )
+MANGLE_PLY *
+ply_read_file( char const *const filename )
 {
-    PLY *ply;
+    MANGLE_PLY *ply;
     ply = ply_init( 0 );
     ply_read_file_into( ply, filename );
     return ply;
@@ -245,7 +245,7 @@ MANGLE_VEC *
 ply_vec_init( void )
 {
     MANGLE_VEC *vec3;
-    vec3 = check_alloc( 1, sizeof( MANGLE_VEC ) );
+    vec3 = ( MANGLE_VEC * ) check_alloc( 1, sizeof( MANGLE_VEC ) );
     return vec3;
 }
 
@@ -277,7 +277,7 @@ ply_vec_from_radec_deg( MANGLE_VEC * vec3, const double ra, const double dec )
 }
 
 static inline MANGLE_INT
-ply_within_cap( const MANGLE_CAP const *cap, const MANGLE_VEC const *vec3 )
+ply_within_cap( MANGLE_CAP const *const cap, MANGLE_VEC const *const vec3 )
 {
     const double *c;
     const double *v;
@@ -296,7 +296,7 @@ ply_within_cap( const MANGLE_CAP const *cap, const MANGLE_VEC const *vec3 )
 }
 
 static inline MANGLE_INT
-ply_within_poly( const MANGLE_POLY const *p, const MANGLE_VEC const *vec3 )
+ply_within_poly( MANGLE_POLY const *const p, MANGLE_VEC const *const vec3 )
 {
     MANGLE_INT i;
     MANGLE_CAP *c;
@@ -310,7 +310,7 @@ ply_within_poly( const MANGLE_POLY const *p, const MANGLE_VEC const *vec3 )
 
 /* short circuit, finds *FIRST* matching polygon and does not continue checking! */
 static inline MANGLE_INT
-ply_find_index( const PLY const *ply, const MANGLE_VEC const *vec3 )
+ply_find_index( MANGLE_PLY const *const ply, MANGLE_VEC const *const vec3 )
 {
     MANGLE_INT i;
     MANGLE_POLY *p;
@@ -324,7 +324,7 @@ ply_find_index( const PLY const *ply, const MANGLE_VEC const *vec3 )
 }
 
 MANGLE_POLY *
-ply_poly_from_index( const PLY const *ply, const MANGLE_INT index )
+ply_poly_from_index( MANGLE_PLY const *const ply, const MANGLE_INT index )
 {
     if( index >= ply->npoly || index < 0 ) {
         fprintf( stderr, "MANGLE Error: invalid POLY index: %zd\n", ( ssize_t ) index );
@@ -335,25 +335,27 @@ ply_poly_from_index( const PLY const *ply, const MANGLE_INT index )
 }
 
 static inline MANGLE_INT
-ply_polyid_from_index( const PLY const *ply, const MANGLE_INT index )
+ply_polyid_from_index( MANGLE_PLY const *const ply, const MANGLE_INT index )
 {
     return ( ply_poly_from_index( ply, index ) )->polyid;
 }
 
 static inline double
-ply_weight_from_index( const PLY const *ply, const MANGLE_INT index )
+ply_weight_from_index( MANGLE_PLY const *const ply, const MANGLE_INT index )
 {
-    return ( ply_poly_from_index( ply, index ) )->weight;
+    MANGLE_POLY *p;
+    p = ply_poly_from_index( ply, index );
+    return p->weight;
 }
 
 static inline double
-ply_area_from_index( const PLY const *ply, const MANGLE_INT index )
+ply_area_from_index( MANGLE_PLY const *const ply, const MANGLE_INT index )
 {
     return ( ply_poly_from_index( ply, index ) )->area;
 }
 
 static inline double
-ply_area_total( const PLY const *ply, const double min_weight )
+ply_area_total( MANGLE_PLY const *const ply, const double min_weight )
 {
     MANGLE_INT i;
     double area = 0.0;
@@ -366,7 +368,7 @@ ply_area_total( const PLY const *ply, const double min_weight )
 }
 
 static inline double
-ply_area_weighted_total( const PLY const *ply, const double min_weight )
+ply_area_weighted_total( MANGLE_PLY const *const ply, const double min_weight )
 {
     MANGLE_INT i;
     double warea = 0.0;
@@ -379,7 +381,7 @@ ply_area_weighted_total( const PLY const *ply, const double min_weight )
 }
 
 static inline MANGLE_INT
-ply_find_polyid( const PLY const *ply, const MANGLE_VEC const *vec3 )
+ply_find_polyid( MANGLE_PLY const *const ply, MANGLE_VEC const *const vec3 )
 {
     MANGLE_INT index = ply_find_index( ply, vec3 );
 
@@ -408,16 +410,16 @@ ply_pix_count( const int res )
 }
 
 void
-ply_pix_init( PLY * const ply, const int pix_res )
+ply_pix_init( MANGLE_PLY * const ply, const int pix_res )
 {
     /* use pix_res to allocate ply->pix array */
     size_t count = ply_pix_count( pix_res );
-    ply->pix = check_alloc( count, sizeof( DATA_LIST ) );
+    ply->pix = ( DATA_LIST * ) check_alloc( count, sizeof( DATA_LIST ) );
     ply->pix_res = pix_res;
 }
 
 void
-ply_pix_addpoly( PLY const *const ply, MANGLE_POLY const *const p )
+ply_pix_addpoly( MANGLE_PLY const *const ply, MANGLE_POLY const *const p )
 {
     // XXX in development
     // XXX check PIXEL_ID matches the implied resolution!
@@ -431,7 +433,7 @@ ply_pix_addpoly( PLY const *const ply, MANGLE_POLY const *const p )
 
 /* Given pixel resolution, what is the ID of the starting pixel? */
 static inline MANGLE_INT
-ply_pix_id_start( PLY const *const ply )
+ply_pix_id_start( MANGLE_PLY const *const ply )
 {
     int pix_id;
     MANGLE_INT res;
@@ -445,7 +447,7 @@ ply_pix_id_start( PLY const *const ply )
  * zero-indexed rather than numbered according to resolution as the
  * "simple pixelization" scheme in MANGLE does */
 static inline MANGLE_INT
-ply_pix_which_index( PLY const *const ply, const double az, const double el )
+ply_pix_which_index( MANGLE_PLY const *const ply, const double az, const double el )
 {
     int n, m, base_pix;
     MANGLE_INT pow2r;
@@ -464,7 +466,7 @@ ply_pix_which_index( PLY const *const ply, const double az, const double el )
 }
 
 static inline MANGLE_INT
-ply_pix_which_id( PLY const *const ply, const double az, const double el )
+ply_pix_which_id( MANGLE_PLY const *const ply, const double az, const double el )
 {
     return ply_pix_which_index( ply, az, el ) + ply_pix_id_start( ply );
 }

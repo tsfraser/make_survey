@@ -50,8 +50,8 @@ spline_init( void const *type )
 {
     SPLINE *s;
 
-    s = check_alloc( 1, sizeof( SPLINE ) );
-    s->type = type;
+    s = ( SPLINE * ) check_alloc( 1, sizeof( SPLINE ) );
+    s->type = ( gsl_interp_type const * ) type;
     spline_alloc( s, 1000 );
 
     return s;

@@ -18,17 +18,26 @@ ZSEL *
 zsel_init( void )
 {
     ZSEL *zs;
-    zs = check_alloc( 1, sizeof( ZSEL ) );
+    zs = ( ZSEL * ) check_alloc( 1, sizeof( ZSEL ) );
 
     zs->spl = spline_init( SPLINE_TYPE_AKIMA ); /* allow discontinuities, with potential deviations */
-    zs->zmin = 1.0 / 0.0;
-    zs->zmax = -1.0 / 0.0;
+    zs->zmin = 1e100;
+    zs->zmax = -1e100;
 
     return zs;
 }
 
 ZSEL *
-zsel_read_file( const char const *filename )
+zsel_kill( ZSEL * zs )
+{
+
+    spline_kill( zs->spl );
+    CHECK_FREE( zs );
+    return zs;
+}
+
+ZSEL *
+zsel_read_file( char const *const filename )
 {
     ZSEL *zs;
     double z, frac;
@@ -75,7 +84,7 @@ zsel_read_file( const char const *filename )
 }
 
 static inline double
-zsel_eval_frac( ZSEL const *const zs, const double z )
+zsel_eval( ZSEL const *const zs, const double z )
 {
     /* gracefully handle boundaries, then continue */
     if( z < zs->zmin )

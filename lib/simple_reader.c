@@ -44,7 +44,7 @@ sr_buf_alloc( simple_reader * sr, const size_t maxlen )
 {
     sr_check_not_null( sr );
     sr->buf_size = maxlen + 2;  /* one for \0 and one to replace possible "\n" */
-    sr->buf = check_realloc( sr->buf, sr->buf_size, sizeof( char ) );
+    sr->buf = ( char * ) check_realloc( sr->buf, sr->buf_size, sizeof( char ) );
 }
 
 void
@@ -92,7 +92,7 @@ sr_setfile( simple_reader * const sr, char const *const filename )
 
     /* if sr->filename is NULL then check_realloc will calloc it */
     len = strlen( filename ) + 1;
-    sr->filename = check_realloc( sr->filename, len, sizeof( char ) );
+    sr->filename = ( char * ) check_realloc( sr->filename, len, sizeof( char ) );
     strncpy( sr->filename, filename, len );
 
     sr->line_num = 0;
@@ -128,7 +128,7 @@ simple_reader *
 sr_init( char const *const filename )
 {
     simple_reader *sr;
-    sr = check_alloc( 1, sizeof( simple_reader ) );
+    sr = ( simple_reader * ) check_alloc( 1, sizeof( simple_reader ) );
     sr_alloc( sr, filename );
     return sr;
 }

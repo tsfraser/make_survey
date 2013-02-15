@@ -19,7 +19,7 @@ check_fopen( const char *path, const char *mode )
         size_t len;
 
         len = strlen( path ) + strlen( mode ) + 40;
-        msg = malloc( len * sizeof( char ) );
+        msg = ( char * ) malloc( len * sizeof( char ) );
 
         if( NULL == msg ) {
             fprintf( stderr, "ERROR: cannot allocate a string of %zd elements\n", len );

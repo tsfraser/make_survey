@@ -60,7 +60,7 @@ simple_array *
 sa_init( const size_t count, const size_t size )
 {
     simple_array *sa;
-    sa = check_alloc( 1, sizeof( simple_array ) );
+    sa = ( simple_array * ) check_alloc( 1, sizeof( simple_array ) );
     sa_alloc( sa, count, size );
     return sa;
 }
