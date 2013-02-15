@@ -79,7 +79,7 @@ static inline void
 ct_xyz_to_sky( double const *const v, double *az, double *el )
 {
     *el = acos( v[2] );
-    /* for compatability with some other codes */
+    /* algorithm below for compatablility with some other codes */
     *az = atan( v[1] / v[0] );
     if( v[0] < 0 )
         *az += PI;
