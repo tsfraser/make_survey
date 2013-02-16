@@ -78,7 +78,8 @@ ct_vec_mag( double const *const v )
 static inline void
 ct_xyz_to_sky( double const *const v, double *az, double *el )
 {
-    *el = acos( v[2] );
+    double r = ct_vec_mag( v );
+    *el = acos( v[2] / r );
     /* algorithm below for compatablility with some other codes */
     *az = atan( v[1] / v[0] );
     if( v[0] < 0 )
