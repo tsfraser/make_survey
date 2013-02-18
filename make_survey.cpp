@@ -67,73 +67,68 @@ main( int argc, char *argv[] )
     ply = NULL;
     mvec = NULL;
 
-    if( argc < 4 ) {
+    if( argc != 4 ) {
         fprintf( stderr, "USAGE:\t%s  CONFIG_FILE  MOCK_IN  RDZ_OUT\n", argv[0] );
         exit( EXIT_FAILURE );
     }
 
     file_config = argv[1];
     file_mock = argv[2];
-    file_out = argv[3];
-
-    /* do config stuff */
+    file_out = argv[3];         /* XXX generate this!! */
+    if( strcmp( file_mock, file_out ) == 0 ) {
+        fprintf( stderr, "Error: OUTPUT file must be different than INPUT!\n" );
+        exit( EXIT_FAILURE );
+    }
+    // XXX read config file! 
     conf = conf_init(  );
     {
         conf->file_zsel = NULL;
+        conf->file_mask = file_config;  // XXX hack!!
+        conf->downsample_sky = 0;
 
-    }
+        conf->lbox = 2560.0;
+        conf->omega_m = 0.29;
+        conf->omega_l = 1.0 - conf->omega_m;
+        conf->hubble = 1.0;
+        conf->seed = 6452;
 
-    /* do all initialization */
-    {
-        rng = rng_init( conf->seed );
+        conf->min_sky_weight = 0.0;
+        conf->zspace = 1;
+        conf->zin = 0.55;
 
-        if( conf->file_zsel != NULL ) {
-            zsel = zsel_read_file( conf->file_zsel );
-        } else {
-            zsel = NULL;
-        }
+        conf->zmin = 0.43;
+        conf->zmax = 0.75;
 
-        /* initialize cosmology */
-        cosmo = cosmo_init(  );
-        cosmo_set_omega_m( cosmo, conf->omega_m );
-        cosmo_set_omega_l( cosmo, conf->omega_l );
-        cosmo_set_hubble( cosmo, 1.0 );
+        conf->u[0] = 1;
+        conf->u[1] = 1;
+        conf->u[2] = 0;
 
-        /* init cosmo spline rad -> z */
-        spl = spline_init( SPLINE_TYPE_CUBIC );
-        {
-            int i;
-            double z, dc, dz;
-            double zmin = 1e9, zmax = -1e9;
+        conf->u[3] = 0;
+        conf->u[4] = 0;
+        conf->u[5] = 1;
 
-            /* pad redshift bounds by 10% for spline and z-distortions */
-            if( conf->zmin >= 0 ) {
-                zmin = 0.9 * conf->zmin;
-            } else {
-                zmin = 1.1 * conf->zmin;
-            }
+        conf->u[6] = 1;
+        conf->u[7] = 0;
+        conf->u[8] = 0;
 
-            zmax = 1.1 * conf->zmax;
+        /* NGC */
+//         conf->t[0] = -1810.0;
+//         conf->t[1] = -350.0;
+//         conf->t[2] = -10.0;
 
-            /* these are used for an initial trim! */
-            rmin = cosmo_dist_co_los( cosmo, zmin );
-            rmax = cosmo_dist_co_los( cosmo, zmax );
+//         conf->rot[0] = 355.0;
+//         conf->rot[1] = 0.0; 
+//         conf->rot[2] = 95.0;
 
-            dz = ( zmax - zmin ) / ( NSPLINE - 1 );
-            for( z = 0.0, i = 0; i < NSPLINE; i++, z += dz ) {
-                dc = cosmo_dist_co_los( cosmo, z );
-                spline_data_add( spl, dc, z );  /* it's actually a reverse spline */
-            }
-            spline_data_finalize( spl );
-        }
+        /* SGC */
+        conf->t[0] = -1810.0;
+        conf->t[1] = -310.0;
+        conf->t[2] = -380.0;
 
-        /* initialize mangle PLY */
-        if( conf->file_mask != NULL ) {
-            ply = ply_read_file( conf->file_mask );
-            mvec = ply_vec_init(  );
-        } else {
-            ply = NULL;
-        }
+        conf->rot[0] = 340.0;
+        conf->rot[1] = 0.0;
+        conf->rot[2] = 270.0;
+
     }
 
     /* initialize cuboid remapping */
@@ -156,15 +151,90 @@ main( int argc, char *argv[] )
         r[1] = R.L2 * conf->lbox;
         r[2] = R.L3 * conf->lbox;
 
-        fprintf( stderr, "remap> REMAP X: %8.2f -> %8.2f\n", conf->lbox, r[0] );
-        fprintf( stderr, "remap> REMAP Y: %8.2f -> %8.2f\n", conf->lbox, r[1] );
-        fprintf( stderr, "remap> REMAP Z: %8.2f -> %8.2f\n", conf->lbox, r[2] );
+        fprintf( stderr, "remap> REMAPPING max x: %8.2f to %6.2f\n", conf->lbox, r[0] );
+        fprintf( stderr, "remap> REMAPPING max y: %8.2f to %6.2f\n", conf->lbox, r[1] );
+        fprintf( stderr, "remap> REMAPPING max z: %8.2f to %6.2f\n", conf->lbox, r[2] );
+
+        fprintf( stderr, "trans> TRANSLATE x: %8.2f to %6.2f\n", conf->t[0], r[0] + conf->t[0] );
+        fprintf( stderr, "trans> TRANSLATE y: %8.2f to %6.2f\n", conf->t[1], r[1] + conf->t[1] );
+        fprintf( stderr, "trans> TRANSLATE z: %8.2f to %6.2f\n", conf->t[2], r[2] + conf->t[2] );
+
+        fprintf( stderr, "rot> ROTATION about x,y,z in degrees: %g,%g,%g\n",
+                 conf->rot[0], conf->rot[1], conf->rot[2] );
+    }
+
+    /* do all initialization */
+    {
+        rng = rng_init( conf->seed );
+
+        /* initialize cosmology */
+        cosmo = cosmo_init(  );
+        cosmo_set_omega_m( cosmo, conf->omega_m );
+        cosmo_set_omega_l( cosmo, conf->omega_l );
+        cosmo_set_h( cosmo, 1.0 );
+
+        fprintf( stderr, "cosmo> Cosmology: (Om, Ol, h) = (%g, %g, %.1f)\n",
+                 cosmo_omega_m( cosmo ), cosmo_omega_l( cosmo ), cosmo_h( cosmo ) );
+
+        /* init cosmo spline rad -> z */
+        spl = spline_init( SPLINE_TYPE_CUBIC );
+        {
+            int i;
+            double z, dc, dz;
+            double zmin = 1e9, zmax = -1e9;
+
+            /* pad redshift bounds by 10% for spline and z-distortions */
+            if( conf->zmin >= 0 ) {
+                zmin = 0.9 * conf->zmin;
+            } else {
+                zmin = 1.1 * conf->zmin;
+            }
+            zmax = 1.1 * conf->zmax;
+
+            /* these are used for an initial trim! */
+            rmin = cosmo_dist_co_los( cosmo, zmin );
+            rmax = cosmo_dist_co_los( cosmo, zmax );
+
+            fprintf( stderr, "cosmo> Redshift trimmed to: %g - %g\n", conf->zmin, conf->zmax );
+            fprintf( stderr, "cosmo> Creating spline for: %g - %g\n", zmin, zmax );
+            fprintf( stderr, "cosmo> Trim comoving distance: %g < r < %g\n", rmin, rmax );
+
+            dz = ( zmax - zmin ) / ( NSPLINE - 1 );
+            for( z = zmin, i = 0; i < NSPLINE; i++, z += dz ) {
+                dc = cosmo_dist_co_los( cosmo, z );
+                spline_data_add( spl, dc, z );  /* it's actually a reverse spline */
+            }
+            spline_data_finalize( spl );
+        }
+
+        /* initialize mangle PLY */
+        if( conf->file_mask != NULL ) {
+            fprintf( stderr, "sky> Using mangle polygon file: %s\n", conf->file_mask );
+            ply = ply_read_file( conf->file_mask );
+            mvec = ply_vec_init(  );
+            fprintf( stderr, "sky> Minimum weight: %g\n", conf->min_sky_weight );
+            if( conf->downsample_sky ) {
+                fprintf( stderr, "sky> Additional downsampling by sky completeness... \n" );
+            }
+        } else {
+            ply = NULL;
+        }
+
+        if( conf->file_zsel != NULL ) {
+            fprintf( stderr, "zsel> Downsampling redshift accoring to: %s\n", conf->file_zsel );
+            zsel = zsel_read_file( conf->file_zsel );
+        } else {
+            zsel = NULL;
+        }
+
     }
 
     /* Read from ASCII text file, one line at a time */
     sr = sr_init( file_mock );
     fdout = check_fopen( file_out, "w" );
-    fprintf( stderr, "Reading galaxies from %s ... \n", sr_filename( sr ) );
+    fprintf( stderr, "\nReading and processing one-by-one ...\n" );
+    fprintf( stderr, "  <- %s\n", sr_filename( sr ) );
+    fprintf( stderr, "  -> %s\n", file_out );
     while( sr_readline( sr ) ) {
         int i, check;
         double x[3], v[3];      /* original coordinates */
@@ -214,6 +284,7 @@ main( int argc, char *argv[] )
         vel = ct_vec_dot( v, x ) / rad;
 
         /* let's see if we pass redshift tests */
+//         fprintf( stdout, "READ %zd : r,v = %g , %g\n", nread, rad, vel );
 
         /* radial comoving distance -> redshift  */
         if( rad < rmin )
@@ -226,7 +297,9 @@ main( int argc, char *argv[] )
         /*  add redshift distortion  */
         if( conf->zspace == 1 ) {
             /* need velocity in physical units */
-            z += vel * ( 1.0 + conf->zin ) / SPEED_OF_LIGHT;
+            double dz = vel * ( 1.0 + conf->zin ) / SPEED_OF_LIGHT;
+//             fprintf( stdout, "  zdist: %g + %g\n", z, dz);
+            z += dz;
         }
 
         /* trim by redshift */
@@ -248,12 +321,14 @@ main( int argc, char *argv[] )
         /* so all redshift / radial selection is now done, check sky next */
 
         /* first rotate */
-        ct_rotate_about_xaxis( conf->rot[0], x );
-        ct_rotate_about_yaxis( conf->rot[1], x );
-        ct_rotate_about_zaxis( conf->rot[2], x );
+        ct_rotate_about_xaxis( ct_rad_from_deg( conf->rot[0] ), x );
+        ct_rotate_about_yaxis( ct_rad_from_deg( conf->rot[1] ), x );
+        ct_rotate_about_zaxis( ct_rad_from_deg( conf->rot[2] ), x );
 
         /* project onto sky: x,y,z -> RA, DEC */
         ct_xyz_to_radec( x, &ra, &dec );
+//         fprintf( stdout, "  box : %10.6f %10.6f %10.6f\n", x[0], x[1], x[2] );
+//         fprintf( stdout, "  sky : %10.6f % 9.6f\n", ra, dec);
 
         /* check mangle mask  */
         if( ply != NULL ) {
@@ -279,7 +354,8 @@ main( int argc, char *argv[] )
         }
 
         /* output mock point on sky */
-        fprintf( fdout, "%10.6f % 10.6f %8.6f\n", ra, dec, z );
+        fprintf( fdout, "%10.6f  % 10.6f  %10.7f\n", ra, dec, z );
+        fflush( fdout );
         nout += 1;
     }
 
