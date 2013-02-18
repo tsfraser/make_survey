@@ -98,9 +98,27 @@ cosmo_set_flat_om( COSMO * c, const double omega_m )
 }
 
 static inline void
-cosmo_set_hubble( COSMO * c, const double h )
+cosmo_set_h( COSMO * c, const double h )
 {
     c->h = h;
+}
+
+static inline double
+cosmo_omega_m( COSMO * c )
+{
+    return c->omega_m;
+}
+
+static inline double
+cosmo_omega_l( COSMO * c )
+{
+    return c->omega_l;
+}
+
+static inline double
+cosmo_h( COSMO * c )
+{
+    return c->h;
 }
 
 static inline double
