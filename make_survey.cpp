@@ -5,10 +5,10 @@
  * and optionally apply various transformations to make a mock survey. The basic steps
  * that can be applied are: 
  * 1. BoxRemap 
- * 2. Translate / Rotate
+ * 2. Translate / rotate
  * 3. Apply redshift distortions 
- * 4. Sky Projection (using proper cosmological distance) 
- * 5. Trim to survey footprint (Mangle PLY mask)
+ * 4. Sky projection (using proper cosmological distance) 
+ * 5. Trim to survey footprint (mangle mask: ascii PLY)
  * 6. Downsample based on sky completeness (in polygon mask) 
  * 7. Downsample based on redshift completeness (additional input) 
  *
@@ -92,11 +92,11 @@ main( int argc, char *argv[] )
         conf->hubble = 1.0;
         conf->seed = 6452;
 
-        conf->min_sky_weight = 0.0;
+        conf->min_sky_weight = 0.7;
         conf->zspace = 1;
         conf->zin = 0.55;
 
-        conf->zmin = 0.43;
+        conf->zmin = 0.40;
         conf->zmax = 0.75;
 
         conf->u[0] = 1;
@@ -112,22 +112,22 @@ main( int argc, char *argv[] )
         conf->u[8] = 0;
 
         /* NGC */
-//         conf->t[0] = -1810.0;
-//         conf->t[1] = -350.0;
-//         conf->t[2] = -10.0;
+        conf->t[0] = -1810.0;
+        conf->t[1] = -350.0;
+        conf->t[2] = -10.0;
 
-//         conf->rot[0] = 355.0;
-//         conf->rot[1] = 0.0; 
-//         conf->rot[2] = 95.0;
+        conf->rot[0] = 355.0;
+        conf->rot[1] = 0.0;
+        conf->rot[2] = 95.0;
 
         /* SGC */
-        conf->t[0] = -1810.0;
-        conf->t[1] = -310.0;
-        conf->t[2] = -380.0;
+//         conf->t[0] = -1810.0;
+//         conf->t[1] = -310.0;
+//         conf->t[2] = -380.0;
 
-        conf->rot[0] = 340.0;
-        conf->rot[1] = 0.0;
-        conf->rot[2] = 270.0;
+//         conf->rot[0] = 340.0;
+//         conf->rot[1] = 0.0;
+//         conf->rot[2] = 270.0;
 
     }
 
@@ -207,26 +207,26 @@ main( int argc, char *argv[] )
             spline_data_finalize( spl );
         }
 
-        /* initialize mangle PLY */
+        /* initialize MANGLE polygon reading */
         if( conf->file_mask != NULL ) {
             fprintf( stderr, "sky> Using mangle polygon file: %s\n", conf->file_mask );
-            ply = ply_read_file( conf->file_mask );
-            mvec = ply_vec_init(  );
+            ply = mply_read_file( conf->file_mask );
             fprintf( stderr, "sky> Minimum weight: %g\n", conf->min_sky_weight );
-            if( conf->downsample_sky ) {
-                fprintf( stderr, "sky> Additional downsampling by sky completeness... \n" );
-            }
+            fprintf( stderr, "sky> Downsampling by sky completeness in mask: %s\n"
+                     conf->downsample_sky ? "ENABLED" : "OFF" );
         } else {
+            fprintf( stderr, "sky> No mask, so not by sky completeness in mask.\n" );
             ply = NULL;
         }
 
+        fprintf( stderr, "zsel> Downsampling redshift" );
         if( conf->file_zsel != NULL ) {
-            fprintf( stderr, "zsel> Downsampling redshift accoring to: %s\n", conf->file_zsel );
             zsel = zsel_read_file( conf->file_zsel );
+            fprintf( stderr, " from file: %s\n", conf->file_zsel );
         } else {
             zsel = NULL;
+            fprintf( stderr, ": OFF\n" );
         }
-
     }
 
     /* Read from ASCII text file, one line at a time */
@@ -284,7 +284,6 @@ main( int argc, char *argv[] )
         vel = ct_vec_dot( v, x ) / rad;
 
         /* let's see if we pass redshift tests */
-//         fprintf( stdout, "READ %zd : r,v = %g , %g\n", nread, rad, vel );
 
         /* radial comoving distance -> redshift  */
         if( rad < rmin )
@@ -298,7 +297,6 @@ main( int argc, char *argv[] )
         if( conf->zspace == 1 ) {
             /* need velocity in physical units */
             double dz = vel * ( 1.0 + conf->zin ) / SPEED_OF_LIGHT;
-//             fprintf( stdout, "  zdist: %g + %g\n", z, dz);
             z += dz;
         }
 
@@ -327,21 +325,18 @@ main( int argc, char *argv[] )
 
         /* project onto sky: x,y,z -> RA, DEC */
         ct_xyz_to_radec( x, &ra, &dec );
-//         fprintf( stdout, "  box : %10.6f %10.6f %10.6f\n", x[0], x[1], x[2] );
-//         fprintf( stdout, "  sky : %10.6f % 9.6f\n", ra, dec);
 
         /* check mangle mask  */
         if( ply != NULL ) {
-            MANGLE_INT ply_index;
-            ply_vec_from_radec_deg( mvec, ra, dec );
-            ply_index = ply_find_index( ply, mvec );
+            MANGLE_INT ipoly;
+            ipoly = mply_find_polyindex_radec( ply, ra, dec );
 
             /* -1 means not in mask.ply */
-            if( ply_index < 0 )
+            if( ipoly < 0 )
                 continue;
 
             /* since we exist, let's look up the associated weight */
-            weight = ply_weight_from_index( ply, ply_index );
+            weight = mply_weight_from_index( ply, ipoly );
             if( weight < conf->min_sky_weight )
                 continue;
 
@@ -369,8 +364,7 @@ main( int argc, char *argv[] )
     cosmo_kill( cosmo );
 
     if( ply != NULL ) {
-        ply_vec_kill( mvec );
-        ply_kill( ply );
+        mply_kill( ply );
     }
     if( zsel != NULL ) {
         zsel_kill( zsel );
