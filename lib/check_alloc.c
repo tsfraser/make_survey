@@ -28,7 +28,7 @@ check_realloc( void *data, size_t count, size_t size )
     if( NULL == data ) {
         fprintf( stderr,
                  "ERROR: could not allocate memory for %zu elements of %zu size\n", count, size );
-        exit( 1 );
+        abort( ); /* produce core dump so people can trace this back! */
     }
 
     return data;
