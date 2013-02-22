@@ -42,6 +42,14 @@
 
 #define NSPLINE 1000            /* number of elements to train cosmology spline with */
 
+#define ON 1
+#define OFF 0
+
+#ifndef TRUE
+#define TRUE 1
+#define FALSE 0
+#endif
+
 int
 main( int argc, char *argv[] )
 {
@@ -82,9 +90,8 @@ main( int argc, char *argv[] )
     // XXX read config file!
     conf = conf_init(  );
     {
-        conf->file_zsel = NULL;
         conf->file_mask = file_config;  // XXX hack!!
-        conf->downsample_sky = 0;
+        conf->downsample_sky = ON;
 
         conf->lbox = 2560.0;
         conf->omega_m = 0.29;
@@ -124,6 +131,8 @@ main( int argc, char *argv[] )
         conf->rot[1] = 0.0;
         conf->rot[2] = 95.0;
 
+        conf->file_zsel = "cmass-dr10v5-ngc.zsel";
+
         /* SGC */
 //         conf->t[0] = -1810.0;
 //         conf->t[1] = -310.0;
@@ -132,6 +141,7 @@ main( int argc, char *argv[] )
 //         conf->rot[0] = 340.0;
 //         conf->rot[1] = 0.0;
 //         conf->rot[2] = 270.0;
+        conf->file_zsel = "cmass-dr10v5-sgc.zsel";
 
     }
 
@@ -215,9 +225,9 @@ main( int argc, char *argv[] )
         if( conf->file_mask != NULL ) {
             fprintf( stderr, "sky> Using mangle polygon file: %s\n", conf->file_mask );
             ply = mply_read_file( conf->file_mask );
-            fprintf( stderr, "sky> Minimum weight: %g\n", conf->min_sky_weight );
             fprintf( stderr, "sky> Downsampling by sky completeness in mask: %s\n",
-                     conf->downsample_sky ? "ENABLED" : "OFF" );
+                     conf->downsample_sky ? "ON" : "OFF" );
+            fprintf( stderr, "sky> Minimum weight: %g\n", conf->min_sky_weight );
         } else {
             fprintf( stderr, "sky> No mask, so not by sky completeness in mask.\n" );
             ply = NULL;
@@ -335,7 +345,7 @@ main( int argc, char *argv[] )
 
         /* rotate
          * NOTE: since we added z-distortion already, we don't bother updating
-         * velocities by these rotations. DON'T USE VELOCITIES PAST THIS HERE!
+         * velocities by these rotations. DON'T USE VELOCITIES PAST HERE!
          */
         for( i = 0; i < 3; i++ ) {
             if( conf->rot[i] != 0 )
