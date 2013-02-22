@@ -172,9 +172,9 @@ mply_pix_which_index( MANGLE_PLY const *const ply, const double az, double el )
     if( sin( el ) == 1.0 ) {
         n = 0;
     } else {
-        n = ceil( ( 1.0 - sin( el ) ) / 2.0 * pow2r ) - 1;
+        n = ( int ) ceil( ( 1.0 - sin( el ) ) / 2.0 * pow2r ) - 1;
     }
-    m = floor( az / 2.0 / PI * pow2r );
+    m = ( int ) floor( az / 2.0 / PI * pow2r );
     base_pix = pow2r * n + m;
 
     return base_pix;
@@ -193,7 +193,7 @@ mply_pix_index_from_id( MANGLE_PLY const *const ply, MANGLE_INT id )
     size_t npix = mply_pix_count( ply->pix_res );
     index = id - mply_pix_id_start( ply );
 
-    if( index < 0 || (size_t) index >= npix ) {
+    if( index < 0 || ( size_t ) index >= npix ) {
         fprintf( stderr,
                  "MANGLE Error: pixel_id=%zd does not match with pixel_res=%zd.\n",
                  ( ssize_t ) id, ( ssize_t ) ply->pix_res );
