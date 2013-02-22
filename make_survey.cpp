@@ -1,25 +1,25 @@
 /* make_survey
  * -----------
  *
- * GOAL: take points distributed in a periodic box (mock galaxies, halos, etc) 
+ * GOAL: take points distributed in a periodic box (mock galaxies, halos, etc)
  * and optionally apply various transformations to make a mock survey. The basic steps
- * that can be applied are: 
- * 1. BoxRemap 
- * 2. Translate / rotate
- * 3. Apply redshift distortions 
- * 4. Sky projection (using proper cosmological distance) 
+ * that can be applied are:
+ * 1. BoxRemap
+ * 2. Translate / Rotate
+ * 3. Apply redshift distortions
+ * 4. Sky projection (using proper cosmological distance)
  * 5. Trim to survey footprint (mangle mask: ascii PLY)
- * 6. Downsample based on sky completeness (in polygon mask) 
- * 7. Downsample based on redshift completeness (additional input) 
+ * 6. Downsample based on sky completeness (in polygon mask)
+ * 7. Downsample based on redshift completeness (additional input)
  *
  *
- * This is glue code, with most functionality in the "library" codes.  Most is written 
- * in C, but this is a modified version of BoxRemap C++ version from Carlson & White: 
+ * This is glue code, with most functionality in the "library" codes.  Most is written
+ * in C, but this is a modified version of BoxRemap C++ version from Carlson & White:
  * http://mwhite.berkeley.edu/BoxRemap/
  *
  *
  * Cameron McBride
- * cameron.mcbride@gmail.com 
+ * cameron.mcbride@gmail.com
  * February 2013
  */
 
@@ -79,7 +79,7 @@ main( int argc, char *argv[] )
         fprintf( stderr, "Error: OUTPUT file must be different than INPUT!\n" );
         exit( EXIT_FAILURE );
     }
-    // XXX read config file! 
+    // XXX read config file!
     conf = conf_init(  );
     {
         conf->file_zsel = NULL;
@@ -111,6 +111,10 @@ main( int argc, char *argv[] )
         conf->u[7] = 0;
         conf->u[8] = 0;
 
+        conf->pre_rot[0] = 0;
+        conf->pre_rot[1] = 0;
+        conf->pre_rot[2] = 0;
+
         /* NGC */
         conf->t[0] = -1810.0;
         conf->t[1] = -350.0;
@@ -135,7 +139,7 @@ main( int argc, char *argv[] )
     Cuboid R( conf->u );
     {
         double r[3];
-        // print out lattice vectors 
+        // print out lattice vectors
         fprintf( stderr, "remap> LATTICE VECTORS:\n" );
         for( int i = 0; i < 3; i++ ) {
             fprintf( stderr, "remap>   u%d = (", i + 1 );
@@ -212,7 +216,7 @@ main( int argc, char *argv[] )
             fprintf( stderr, "sky> Using mangle polygon file: %s\n", conf->file_mask );
             ply = mply_read_file( conf->file_mask );
             fprintf( stderr, "sky> Minimum weight: %g\n", conf->min_sky_weight );
-            fprintf( stderr, "sky> Downsampling by sky completeness in mask: %s\n"
+            fprintf( stderr, "sky> Downsampling by sky completeness in mask: %s\n",
                      conf->downsample_sky ? "ENABLED" : "OFF" );
         } else {
             fprintf( stderr, "sky> No mask, so not by sky completeness in mask.\n" );
@@ -269,6 +273,17 @@ main( int argc, char *argv[] )
             }
         }
 
+        for( i = 0; i < 3; i++ ) {
+            /* assuming box center at 0.5 now */
+            if( conf->pre_rot[i] != 0 ) {
+                double ang = conf->pre_rot[i] * ( PI / 2.0 );
+                x[i] -= 0.5;    /* center origin */
+                ct_rotate_about_axis( ang, x, i );
+                ct_rotate_about_axis( ang, v, i );
+                x[i] += 0.5;    /* coords now [0,1] */
+            }
+        }
+
         /* remap point into cuboid, include velocity */
         R.Transform( x[0], x[1], x[2], rx[0], rx[1], rx[2] );
         R.TransformVelocity( v[0], v[1], v[2], rv[0], rv[1], rv[2] );
@@ -318,12 +333,16 @@ main( int argc, char *argv[] )
 
         /* so all redshift / radial selection is now done, check sky next */
 
-        /* first rotate */
-        ct_rotate_about_xaxis( ct_rad_from_deg( conf->rot[0] ), x );
-        ct_rotate_about_yaxis( ct_rad_from_deg( conf->rot[1] ), x );
-        ct_rotate_about_zaxis( ct_rad_from_deg( conf->rot[2] ), x );
+        /* rotate
+         * NOTE: since we added z-distortion already, we don't bother updating
+         * velocities by these rotations. DON'T USE VELOCITIES PAST THIS HERE!
+         */
+        for( i = 0; i < 3; i++ ) {
+            if( conf->rot[i] != 0 )
+                ct_rotate_about_axis( ct_rad_from_deg( conf->rot[i] ), x, i );
+        }
 
-        /* project onto sky: x,y,z -> RA, DEC */
+        /* project onto sky: (x,y,z) -> (ra,dec) */
         ct_xyz_to_radec( x, &ra, &dec );
 
         /* check mangle mask  */

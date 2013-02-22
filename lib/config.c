@@ -9,6 +9,8 @@ typedef struct {
     double omega_l;             /* omega_l */
     double hubble;              /* dimensionaless hubble: Ho = 100 km/s/Mpc */
 
+    int pre_rot[3];             /* pre-remap axis flips: integral number of 90 deg rotations
+                                 * to stare down different faces */
     unsigned int seed;          /* used for downsampling */
     char *file_mask;
     char *file_zsel;

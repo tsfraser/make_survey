@@ -5,9 +5,14 @@
 #include <math.h>
 
 #ifndef PI
+#ifdef M_PI
+#define PI M_PI
+#else
 #define PI (4.0 * atan(1.0))
-#define RAD2DEG (180.0 / PI)
 #endif
+#endif
+
+#define RAD2DEG (180.0 / PI)
 
 static inline double
 ct_rad_from_deg( double const deg )
@@ -21,40 +26,46 @@ ct_deg_from_rad( double const rad )
     return rad * RAD2DEG;
 }
 
+/* below should generalize the other axis rotations */
 static inline void
-ct_rotate_about_zaxis( const double theta, double *const v )
+ct_rotate_about_axis( const double theta, double *const v, const int axis )
 {
-    double x = v[0];
-    double y = v[1];
+    int i, ia, ic[2];
+    double a, b;
     double st = sin( theta );
     double ct = cos( theta );
 
-    v[0] = ct * x - st * y;
-    v[1] = st * x + ct * y;
+    ia = 0;
+    for( i = 0; i < 3; i++ ) {
+        if( i != axis ) {
+            ic[ia] = i;
+            ia += 1;
+        }
+    }
+
+    a = v[ic[0]];
+    b = v[ic[1]];
+
+    v[ic[0]] = ct * a - st * b;
+    v[ic[1]] = st * a + ct * b;
 }
 
 static inline void
-ct_rotate_about_yaxis( const double theta, double *const v )
+ct_rotate_about_z( const double theta, double *const v )
 {
-    double x = v[0];
-    double z = v[2];
-    double st = sin( theta );
-    double ct = cos( theta );
-
-    v[0] = ct * x - st * z;
-    v[2] = st * x + ct * z;
+    ct_rotate_about_axis( theta, v, 2 );
 }
 
 static inline void
-ct_rotate_about_xaxis( const double theta, double *const v )
+ct_rotate_about_y( const double theta, double *const v )
 {
-    double y = v[1];
-    double z = v[2];
-    double st = sin( theta );
-    double ct = cos( theta );
+    ct_rotate_about_axis( theta, v, 1 );
+}
 
-    v[1] = ct * y - st * z;
-    v[2] = st * y + ct * z;
+static inline void
+ct_rotate_about_x( const double theta, double *const v )
+{
+    ct_rotate_about_axis( theta, v, 0 );
 }
 
 static inline double
@@ -76,7 +87,7 @@ ct_vec_mag( double const *const v )
 }
 
 static inline void
-ct_xyz_to_sky( double const *const v, double *az, double *el )
+ct_xyz_to_polar( double const *const v, double *az, double *el )
 {
     double r = ct_vec_mag( v );
     *el = acos( v[2] / r );
@@ -93,7 +104,7 @@ ct_xyz_to_sky( double const *const v, double *az, double *el )
 static inline void
 ct_xyz_to_radec( double const *const v, double *ra, double *dec )
 {
-    ct_xyz_to_sky( v, ra, dec );
+    ct_xyz_to_polar( v, ra, dec );
     *ra *= RAD2DEG;
     *dec *= RAD2DEG;
     *dec = 90.0 - *dec;
