@@ -55,5 +55,9 @@ conf_init( void )
     c->zmin = 1e20;
     c->zmax = -1e20;
 
+    c->rot[0] = 0.0;
+    c->rot[1] = 0.0;
+    c->rot[2] = 0.0;
+
     return c;
 }
