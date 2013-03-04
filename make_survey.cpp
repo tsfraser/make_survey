@@ -69,11 +69,9 @@ main( int argc, char *argv[] )
     COSMO *cosmo;
     SPLINE *spl;
     MANGLE_PLY *ply;
-    MANGLE_VEC *mvec;
     double rmin, rmax;
 
     ply = NULL;
-    mvec = NULL;
 
     if( argc != 4 ) {
         fprintf( stderr, "USAGE:\t%s  CONFIG_FILE  MOCK_IN  RDZ_OUT\n", argv[0] );
@@ -118,11 +116,11 @@ main( int argc, char *argv[] )
         conf->u[7] = 0;
         conf->u[8] = 0;
 
-        conf->pre_rot[0] = 0;
+        /* NGC */
+        conf->pre_rot[0] = 1;
         conf->pre_rot[1] = 0;
         conf->pre_rot[2] = 0;
 
-        /* NGC */
         conf->t[0] = -1810.0;
         conf->t[1] = -350.0;
         conf->t[2] = -10.0;
@@ -130,10 +128,13 @@ main( int argc, char *argv[] )
         conf->rot[0] = 355.0;
         conf->rot[1] = 0.0;
         conf->rot[2] = 95.0;
-
         conf->file_zsel = "cmass-dr10v5-ngc.zsel";
 
         /* SGC */
+//         conf->pre_rot[0] = 1;
+//         conf->pre_rot[1] = 0;
+//         conf->pre_rot[2] = 0;
+
 //         conf->t[0] = -1810.0;
 //         conf->t[1] = -310.0;
 //         conf->t[2] = -380.0;
@@ -141,8 +142,13 @@ main( int argc, char *argv[] )
 //         conf->rot[0] = 340.0;
 //         conf->rot[1] = 0.0;
 //         conf->rot[2] = 270.0;
-        conf->file_zsel = "cmass-dr10v5-sgc.zsel";
+//         conf->file_zsel = "cmass-dr10v5-sgc.zsel";
 
+    }
+
+    {
+        fprintf( stderr, "pre-rotation> about each axis in 90 deg units [%d,%d,%d]\n",
+                 conf->pre_rot[0], conf->pre_rot[1], conf->pre_rot[2] );
     }
 
     /* initialize cuboid remapping */
@@ -179,6 +185,7 @@ main( int argc, char *argv[] )
 
     /* do all initialization */
     {
+        fprintf( stderr, "rng> initializing random number generator with seed = %u\n", conf->seed );
         rng = rng_init( conf->seed );
 
         /* initialize cosmology */
@@ -250,12 +257,12 @@ main( int argc, char *argv[] )
     fprintf( stderr, "  <- %s\n", sr_filename( sr ) );
     fprintf( stderr, "  -> %s\n", file_out );
     while( sr_readline( sr ) ) {
-        int i, check;
+        int i, k, check;
         double x[3], v[3];      /* original coordinates */
         double rx[3], rv[3];    /* remapped coordinates */
         double z, rad, vel;     /* radius and velocity */
         double ran, prob;
-        double ra, dec, weight;
+        double ra, dec, weight = 1.0;
 
         if( sr_line_isempty( sr ) )
             continue;
@@ -267,13 +274,18 @@ main( int argc, char *argv[] )
         check = sscanf( line, "%lf %lf %lf %lf %lf %lf", &x[0], &x[1], &x[2], &v[0], &v[1], &v[2] );
 
         if( check != 6 ) {
-            fprintf( stderr,
-                     "Error: mock input error on line %d in file: %s\n",
-                     sr_linenum( sr ), sr_filename( sr ) );
-            exit( EXIT_FAILURE );
+            if( check < 3 ) {
+                fprintf( stderr,
+                         "Error: mock input error on line %d in file: %s\n",
+                         sr_linenum( sr ), sr_filename( sr ) );
+                exit( EXIT_FAILURE );
+            }
+            v[0] = v[1] = v[2] = 0.0;
         }
+
         nread += 1;
 
+        /* Normalize coordinates to [0,1] */
         for( i = 0; i < 3; i++ ) {
             x[i] /= conf->lbox;
             if( x[i] < 0 || x[i] > 1 ) {
@@ -283,14 +295,19 @@ main( int argc, char *argv[] )
             }
         }
 
+        /* check if we want to flip any axes */
         for( i = 0; i < 3; i++ ) {
-            /* assuming box center at 0.5 now */
             if( conf->pre_rot[i] != 0 ) {
                 double ang = conf->pre_rot[i] * ( PI / 2.0 );
-                x[i] -= 0.5;    /* center origin */
+
+                /* center on the origin (0,0,0) */
+                for( k = 0; k < 3; k++ )
+                    x[k] -= 0.5;
                 ct_rotate_about_axis( ang, x, i );
                 ct_rotate_about_axis( ang, v, i );
-                x[i] += 0.5;    /* coords now [0,1] */
+                /* correct recentering to range [0,1] */
+                for( k = 0; k < 3; k++ )
+                    x[k] += 0.5;
             }
         }
 
@@ -378,7 +395,7 @@ main( int argc, char *argv[] )
         }
 
         /* output mock point on sky */
-        fprintf( fdout, "%10.6f  % 10.6f  %10.7f\n", ra, dec, z );
+        fprintf( fdout, "%10.6f % 10.6f %10.7f %10.7f\n", ra, dec, z, weight );
         fflush( fdout );
         nout += 1;
     }
