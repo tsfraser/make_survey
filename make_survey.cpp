@@ -80,76 +80,16 @@ main( int argc, char *argv[] )
 
     file_config = argv[1];
     file_mock = argv[2];
-    file_out = argv[3];         /* XXX generate this!! */
+    file_out = argv[3];
     if( strcmp( file_mock, file_out ) == 0 ) {
         fprintf( stderr, "Error: OUTPUT file must be different than INPUT!\n" );
         exit( EXIT_FAILURE );
     }
-    // XXX read config file!
-    conf = conf_init(  );
-    {
-        conf->file_mask = file_config;  // XXX hack!!
-        conf->downsample_sky = ON;
 
-        conf->lbox = 2560.0;
-        conf->omega_m = 0.29;
-        conf->omega_l = 1.0 - conf->omega_m;
-        conf->hubble = 1.0;
-        conf->seed = 6452;
+    conf = conf_readfile( file_config );
 
-        conf->min_sky_weight = 0.7;
-        conf->zspace = 1;
-        conf->zin = 0.55;
-
-        conf->zmin = 0.40;
-        conf->zmax = 0.75;
-
-        conf->u[0] = 1;
-        conf->u[1] = 1;
-        conf->u[2] = 0;
-
-        conf->u[3] = 0;
-        conf->u[4] = 0;
-        conf->u[5] = 1;
-
-        conf->u[6] = 1;
-        conf->u[7] = 0;
-        conf->u[8] = 0;
-
-        /* NGC */
-        conf->pre_rot[0] = 1;
-        conf->pre_rot[1] = 0;
-        conf->pre_rot[2] = 0;
-
-        conf->t[0] = -1810.0;
-        conf->t[1] = -350.0;
-        conf->t[2] = -10.0;
-
-        conf->rot[0] = 355.0;
-        conf->rot[1] = 0.0;
-        conf->rot[2] = 95.0;
-        conf->file_zsel = "cmass-dr10v5-ngc.zsel";
-
-        /* SGC */
-//         conf->pre_rot[0] = 1;
-//         conf->pre_rot[1] = 0;
-//         conf->pre_rot[2] = 0;
-
-//         conf->t[0] = -1810.0;
-//         conf->t[1] = -310.0;
-//         conf->t[2] = -380.0;
-
-//         conf->rot[0] = 340.0;
-//         conf->rot[1] = 0.0;
-//         conf->rot[2] = 270.0;
-//         conf->file_zsel = "cmass-dr10v5-sgc.zsel";
-
-    }
-
-    {
-        fprintf( stderr, "pre-rotation> about each axis in 90 deg units [%d,%d,%d]\n",
-                 conf->pre_rot[0], conf->pre_rot[1], conf->pre_rot[2] );
-    }
+    fprintf( stderr, "pre-rotation> about each axis in 90 deg units [%d,%d,%d]\n",
+             conf->pre_rot[0], conf->pre_rot[1], conf->pre_rot[2] );
 
     /* initialize cuboid remapping */
     Cuboid R( conf->u );
