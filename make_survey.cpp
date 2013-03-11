@@ -218,7 +218,7 @@ main( int argc, char *argv[] )
         file_index = ( char * ) check_alloc( len + 10, sizeof( char ) );
         sprintf( file_index, "%s.index", file_out );
         fdind = check_fopen( file_index, "w" );
-        fprintf( fdind, "# INDEX FROM: %s (0-based)\n", file_mock );
+        fprintf( fdind, "# INDEX FROM: %s (1-based)\n", file_mock );
         fprintf( fdind, "# FOR OUTPUT: %s\n", file_out );
         fprintf( fdind, "# USING CONF: %s\n", file_config );
         fprintf( stderr, "make_survey>   INDEX:  %s\n", file_index );
@@ -366,10 +366,9 @@ main( int argc, char *argv[] )
         }
 
         /* output mock point on sky */
-
         fprintf( fdout, "%10.6f % 10.6f %10.7f %10.7f\n", ra, dec, z, weight );
         if( conf->make_index )
-            fprintf( fdind, "%zu\n", nread - 1 );
+            fprintf( fdind, "%zu\n", nread );
 
         nout += 1;
     }
