@@ -19,29 +19,29 @@ all: make_survey tools
 
 tools: mply_area mply_polyid mply_trim randbox trim_by_index
 
-make_survey: make_survey.cpp lib/cuboid.cpp
+make_survey: src/make_survey.cpp lib/cuboid.cpp
 	$(CXX) $(CXXFLAGS) $(GSL_INC) -o $@ $^ $(LDFLAGS) $(GSL_LINK)
 
-mply_area: tools/mply_area.c
+mply_area: src/mply_area.c
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
-mply_polyid: tools/mply_polyid.c
+mply_polyid: src/mply_polyid.c
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
-mply_trim: tools/mply_trim.c
+mply_trim: src/mply_trim.c
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
-randbox: tools/randbox.c
+randbox: src/randbox.c
 	$(CC) $(CFLAGS) $(GSL_INC) -o $@ $^ $(LDFLAGS) $(GSL_LINK)
 
-trim_by_index: tools/trim_by_index.c
+trim_by_index: src/trim_by_index.c
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 clean:
 	rm -f *.o
 
 bu-clean: clean
-	rm -f *~ *.bak lib/*~ lib/*.bak tools/*~ tools/*.bak
+	rm -f src/*~ src/*.bak lib/*~ lib/*.bak 
 
 real-clean: clean
 	rm -f make_survey  mply_area mply_polyid mply_trim randbox trim_by_index
