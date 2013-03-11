@@ -74,7 +74,7 @@ main( int argc, char *argv[] )
     ply = NULL;
 
     if( argc != 4 ) {
-        fprintf( stderr, "USAGE:\t%s  CONFIG_FILE  MOCK_IN  RDZ_OUT\n", argv[0] );
+        fprintf( stderr, "USAGE:\t%s  CONFIG_FILE  MOCK_IN  RDZW_OUT\n", argv[0] );
         exit( EXIT_FAILURE );
     }
 
@@ -88,7 +88,7 @@ main( int argc, char *argv[] )
 
     conf = conf_readfile( file_config );
 
-    fprintf( stderr, "pre-rotation> about each axis in 90 deg units [%d,%d,%d]\n",
+    fprintf( stderr, "make_survey> PRE-ROTATION about each axis in 90 deg units [%d,%d,%d]\n",
              conf->pre_rot[0], conf->pre_rot[1], conf->pre_rot[2] );
 
     /* initialize cuboid remapping */
@@ -96,9 +96,9 @@ main( int argc, char *argv[] )
     {
         double r[3];
         // print out lattice vectors
-        fprintf( stderr, "remap> LATTICE VECTORS:\n" );
+        fprintf( stderr, "make_survey> REMAP LATTICE VECTORS:\n" );
         for( int i = 0; i < 3; i++ ) {
-            fprintf( stderr, "remap>   u%d = (", i + 1 );
+            fprintf( stderr, "make_survey>   u%d = (", i + 1 );
             for( int j = 0; j < 3; j++ ) {
                 fprintf( stderr, " %d ", conf->u[i * 3 + j] );
                 if( j < 2 )
@@ -111,21 +111,25 @@ main( int argc, char *argv[] )
         r[1] = R.L2 * conf->lbox;
         r[2] = R.L3 * conf->lbox;
 
-        fprintf( stderr, "remap> REMAPPING max x: %8.2f to %6.2f\n", conf->lbox, r[0] );
-        fprintf( stderr, "remap> REMAPPING max y: %8.2f to %6.2f\n", conf->lbox, r[1] );
-        fprintf( stderr, "remap> REMAPPING max z: %8.2f to %6.2f\n", conf->lbox, r[2] );
+        fprintf( stderr, "make_survey> REMAPPING max x: %8.2f to %6.2f\n", conf->lbox, r[0] );
+        fprintf( stderr, "make_survey> REMAPPING max y: %8.2f to %6.2f\n", conf->lbox, r[1] );
+        fprintf( stderr, "make_survey> REMAPPING max z: %8.2f to %6.2f\n", conf->lbox, r[2] );
 
-        fprintf( stderr, "trans> TRANSLATE x: %8.2f to %6.2f\n", conf->t[0], r[0] + conf->t[0] );
-        fprintf( stderr, "trans> TRANSLATE y: %8.2f to %6.2f\n", conf->t[1], r[1] + conf->t[1] );
-        fprintf( stderr, "trans> TRANSLATE z: %8.2f to %6.2f\n", conf->t[2], r[2] + conf->t[2] );
+        fprintf( stderr, "make_survey> TRANSLATE x: %8.2f to %6.2f\n", conf->t[0],
+                 r[0] + conf->t[0] );
+        fprintf( stderr, "make_survey> TRANSLATE y: %8.2f to %6.2f\n", conf->t[1],
+                 r[1] + conf->t[1] );
+        fprintf( stderr, "make_survey> TRANSLATE z: %8.2f to %6.2f\n", conf->t[2],
+                 r[2] + conf->t[2] );
 
-        fprintf( stderr, "rot> ROTATION about x,y,z in degrees: %g,%g,%g\n",
+        fprintf( stderr, "make_survey> ROTATION about x,y,z in degrees: %g,%g,%g\n",
                  conf->rot[0], conf->rot[1], conf->rot[2] );
     }
 
     /* do all initialization */
     {
-        fprintf( stderr, "rng> initializing random number generator with seed = %u\n", conf->seed );
+        fprintf( stderr, "make_survey> RANDOM NUMBER GENERATOR initialized with seed = %u\n",
+                 conf->seed );
         rng = rng_init( conf->seed );
 
         /* initialize cosmology */
@@ -134,7 +138,7 @@ main( int argc, char *argv[] )
         cosmo_set_omega_l( cosmo, conf->omega_l );
         cosmo_set_h( cosmo, 1.0 );
 
-        fprintf( stderr, "cosmo> Cosmology: (Om, Ol, h) = (%g, %g, %.1f)\n",
+        fprintf( stderr, "make_survey> COSMOLOGY: (Om, Ol, h) = (%g, %g, %.2f)\n",
                  cosmo_omega_m( cosmo ), cosmo_omega_l( cosmo ), cosmo_h( cosmo ) );
 
         /* init cosmo spline rad -> z */
@@ -156,9 +160,12 @@ main( int argc, char *argv[] )
             rmin = cosmo_dist_co_los( cosmo, zmin );
             rmax = cosmo_dist_co_los( cosmo, zmax );
 
-            fprintf( stderr, "cosmo> Redshift trimmed to: %g - %g\n", conf->zmin, conf->zmax );
-            fprintf( stderr, "cosmo> Creating spline for: %g - %g\n", zmin, zmax );
-            fprintf( stderr, "cosmo> Trim comoving distance: %g < r < %g\n", rmin, rmax );
+            fprintf( stderr, "make_survey> COSMOLOGY: creating spline (Dc -> z) for z = %g - %g\n",
+                     zmin, zmax );
+            fprintf( stderr, "make_survey> REDSHIFT SPACE OUTPUT: %s\n",
+                     conf->zspace ? "ON" : "OFF" );
+            fprintf( stderr, "make_survey> TRIM REDSHIFT: %g < z < %g\n", conf->zmin, conf->zmax );
+            fprintf( stderr, "make_survey> TRIM DISTANCE: %g < r < %g\n", rmin, rmax );
 
             dz = ( zmax - zmin ) / ( NSPLINE - 1 );
             for( z = zmin, i = 0; i < NSPLINE; i++, z += dz ) {
@@ -169,33 +176,35 @@ main( int argc, char *argv[] )
         }
 
         /* initialize MANGLE polygon reading */
-        if( conf->file_mask != NULL ) {
-            fprintf( stderr, "sky> Using mangle polygon file: %s\n", conf->file_mask );
-            ply = mply_read_file( conf->file_mask );
-            fprintf( stderr, "sky> Downsampling by sky completeness in mask: %s\n",
-                     conf->downsample_sky ? "ON" : "OFF" );
-            fprintf( stderr, "sky> Minimum weight: %g\n", conf->min_sky_weight );
-        } else {
-            fprintf( stderr, "sky> No mask, so not by sky completeness in mask.\n" );
+        if( NULL == conf->file_mask || '\0' == conf->file_mask[0] ) {
+            fprintf( stderr, "make_survey> NO SKY MASK: ignoring minimum completeness\n" );
             ply = NULL;
+        } else {
+            fprintf( stderr, "make_survey> MANGLE POLYGON MASK: %s\n", conf->file_mask );
+            ply = mply_read_file( conf->file_mask );
+            fprintf( stderr, "make_survey> DOWNSAMPLE by sky completeness in mask: %s\n",
+                     conf->downsample_sky ? "ON" : "OFF" );
+            fprintf( stderr, "make_survey> TRIM SKY: remove regions with completeness < %g\n",
+                     conf->min_sky_weight );
         }
 
-        fprintf( stderr, "zsel> Downsampling redshift" );
-        if( conf->file_zsel != NULL ) {
-            zsel = zsel_read_file( conf->file_zsel );
-            fprintf( stderr, " from file: %s\n", conf->file_zsel );
-        } else {
+        fprintf( stderr, "make_survey> DOWNSAMPLING redshift" );
+        if( NULL == conf->file_zsel || '\0' == conf->file_zsel[0] ) {
             zsel = NULL;
             fprintf( stderr, ": OFF\n" );
+        } else {
+            zsel = zsel_read_file( conf->file_zsel );
+            fprintf( stderr, " from file: %s\n", conf->file_zsel );
         }
     }
 
     /* Read from ASCII text file, one line at a time */
     sr = sr_init( file_mock );
     fdout = check_fopen( file_out, "w" );
-    fprintf( stderr, "\nReading and processing one-by-one ...\n" );
-    fprintf( stderr, "  <- %s\n", sr_filename( sr ) );
-    fprintf( stderr, "  -> %s\n", file_out );
+    fprintf( stderr, "make_survey>   CONFIG: %s\n", file_config );
+    fprintf( stderr, "make_survey>   INPUT:  %s\n", sr_filename( sr ) );
+    fprintf( stderr, "make_survey>   OUTPUT: %s\n", file_out );
+    fprintf( stderr, "make_survey> PROCESSING line-by-line...\n" );
     while( sr_readline( sr ) ) {
         int i, k, check;
         double x[3], v[3];      /* original coordinates */
@@ -276,7 +285,7 @@ main( int argc, char *argv[] )
         z = spline_eval( spl, rad );
 
         /*  add redshift distortion  */
-        if( conf->zspace == 1 ) {
+        if( conf->zspace ) {
             /* need velocity in physical units */
             double dz = vel * ( 1.0 + conf->zin ) / SPEED_OF_LIGHT;
             z += dz;
@@ -340,7 +349,7 @@ main( int argc, char *argv[] )
         nout += 1;
     }
 
-    fprintf( stderr, "Finished: %zd -> %zd\n", nread, nout );
+    fprintf( stderr, "make_survey> DONE: %zd -> %zd\n", nread, nout );
 
     /* cleanup / kill */
     fclose( fdout );
