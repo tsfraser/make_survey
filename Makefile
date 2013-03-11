@@ -9,23 +9,36 @@ OPTFLAGS = -O3
 GSL_INC= $(shell gsl-config --cflags)
 GSL_LINK= $(shell gsl-config --libs)
 
-CFLAGS= -Wall $(OPTFLAGS) -I./lib $(GSL_INC)
+CFLAGS= -Wall $(OPTFLAGS) -I./lib
 CXXFLAGS = $(CFLAGS)
-LDFLAGS = -lm $(GSL_LINK)
+LDFLAGS = -lm
 
-default: all
+default: make_survey
 
-all: make_survey
+all: make_survey tools
+
+tools: mply_area mply_polyid mply_trim randbox
 
 make_survey: make_survey.cpp lib/cuboid.cpp
-	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
+	$(CXX) $(CXXFLAGS) $(GSL_INC) -o $@ $^ $(LDFLAGS) $(GSL_LINK)
 
-randbox: tools/randbox.c
+mply_area: tools/mply_area.c
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
+mply_polyid: tools/mply_polyid.c
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+
+mply_trim: tools/mply_trim.c
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+
+randbox: tools/randbox.c
+	$(CC) $(CFLAGS) $(GSL_INC) -o $@ $^ $(LDFLAGS) $(GSL_LINK)
+
 clean:
-	rm -f *.o *~
+	rm -f *.o
+
+bu-clean: clean
+	rm -f *~ *.bak lib/*~ lib/*.bak tools/*~ tools/*.bak
 
 real-clean: clean
-	rm -f make_survey randbox
-
+	rm -f make_survey  mply_area mply_polyid mply_trim randbox
