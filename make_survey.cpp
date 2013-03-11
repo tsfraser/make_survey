@@ -72,6 +72,8 @@ main( int argc, char *argv[] )
     double rmin, rmax;
 
     ply = NULL;
+    rng = NULL;
+    zsel = NULL;
 
     if( argc != 4 ) {
         fprintf( stderr, "USAGE:\t%s  CONFIG_FILE  MOCK_IN  RDZW_OUT\n", argv[0] );
@@ -128,10 +130,6 @@ main( int argc, char *argv[] )
 
     /* do all initialization */
     {
-        fprintf( stderr, "make_survey> RANDOM NUMBER GENERATOR initialized with seed = %u\n",
-                 conf->seed );
-        rng = rng_init( conf->seed );
-
         /* initialize cosmology */
         cosmo = cosmo_init(  );
         cosmo_set_omega_m( cosmo, conf->omega_m );
@@ -178,14 +176,15 @@ main( int argc, char *argv[] )
         /* initialize MANGLE polygon reading */
         if( NULL == conf->file_mask || '\0' == conf->file_mask[0] ) {
             fprintf( stderr, "make_survey> NO SKY MASK: ignoring minimum completeness\n" );
+            conf->downsample_sky = OFF;
             ply = NULL;
         } else {
-            fprintf( stderr, "make_survey> MANGLE POLYGON MASK: %s\n", conf->file_mask );
-            ply = mply_read_file( conf->file_mask );
-            fprintf( stderr, "make_survey> DOWNSAMPLE by sky completeness in mask: %s\n",
-                     conf->downsample_sky ? "ON" : "OFF" );
             fprintf( stderr, "make_survey> TRIM SKY: remove regions with completeness < %g\n",
                      conf->min_sky_weight );
+            fprintf( stderr, "make_survey> MANGLE POLYGON MASK: %s\n", conf->file_mask );
+            ply = mply_read_file( conf->file_mask );
+            fprintf( stderr, "make_survey> DOWNSAMPLING by sky completeness in mask: %s\n",
+                     conf->downsample_sky ? "ON" : "OFF" );
         }
 
         fprintf( stderr, "make_survey> DOWNSAMPLING redshift" );
@@ -196,6 +195,13 @@ main( int argc, char *argv[] )
             zsel = zsel_read_file( conf->file_zsel );
             fprintf( stderr, " from file: %s\n", conf->file_zsel );
         }
+
+        if( conf->downsample_sky || zsel != NULL ) {
+            fprintf( stderr, "make_survey> RANDOM NUMBER GENERATOR initialized with seed = %u\n",
+                     conf->seed );
+            rng = rng_init( conf->seed );
+        }
+
     }
 
     /* Read from ASCII text file, one line at a time */
