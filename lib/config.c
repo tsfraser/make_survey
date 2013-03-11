@@ -23,9 +23,11 @@ typedef struct {
 
     char *file_mask;
     int downsample_sky;         /* randomly downsample according to sky weight in mask.ply */
-    double min_sky_weight;
+    double min_sky_weight;      /* minimum sky weight to keep */
 
-    char *file_zsel;
+    char *file_zsel;            /* redshift selection file */
+
+    int make_index;             /* index file */
 
 } CONFIG;
 
@@ -93,7 +95,7 @@ conf_readfile( char *filename )
     c->file_mask = ( char * ) check_alloc( filename_length, sizeof( char ) );
     c->file_zsel = ( char * ) check_alloc( filename_length, sizeof( char ) );
 
-    sp = sp_init( 17 );
+    sp = sp_init( 18 );
 
     sp_add_array_sint( sp, "remap", c->u, 9, "1 0 0  0 1 0  0 1 1" );
     sp_add_array_sint( sp, "pre_rotate", c->pre_rot, 3, "0 0 0" );
@@ -116,6 +118,7 @@ conf_readfile( char *filename )
     sp_add_sint( sp, "downsample_sky", &c->downsample_sky, "0" );
     sp_add_uint( sp, "random_seed", &c->seed, "-12345" );
     sp_add_sint( sp, "redshift_space", &c->zspace, NULL );
+    sp_add_sint( sp, "make_index", &c->make_index, "0" );
 
     sp_set_defaults( sp );
     n = sp_parse_file( sp, filename );

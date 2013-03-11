@@ -56,7 +56,7 @@ main( int argc, char *argv[] )
     char *file_config = NULL;
     char *file_mock = NULL;
     char *file_out = NULL;
-    FILE *fdout;
+    FILE *fdout, *fdind;
 
     size_t nread = 0, nout = 0;
 
@@ -71,6 +71,7 @@ main( int argc, char *argv[] )
     MANGLE_PLY *ply;
     double rmin, rmax;
 
+    fdind = NULL;
     ply = NULL;
     rng = NULL;
     zsel = NULL;
@@ -204,12 +205,27 @@ main( int argc, char *argv[] )
 
     }
 
-    /* Read from ASCII text file, one line at a time */
     sr = sr_init( file_mock );
     fdout = check_fopen( file_out, "w" );
     fprintf( stderr, "make_survey>   CONFIG: %s\n", file_config );
     fprintf( stderr, "make_survey>   INPUT:  %s\n", sr_filename( sr ) );
     fprintf( stderr, "make_survey>   OUTPUT: %s\n", file_out );
+    if( conf->make_index ) {
+        char *file_index;
+        size_t len;
+
+        len = strlen( file_out );
+        file_index = ( char * ) check_alloc( len + 10, sizeof( char ) );
+        sprintf( file_index, "%s.index", file_out );
+        fdind = check_fopen( file_index, "w" );
+        fprintf( fdind, "# INDEX FROM: %s (0-based)\n", file_mock );
+        fprintf( fdind, "# FOR OUTPUT: %s\n", file_out );
+        fprintf( fdind, "# USING CONF: %s\n", file_config );
+        fprintf( stderr, "make_survey>   INDEX:  %s\n", file_index );
+        CHECK_FREE( file_index );
+    }
+
+    /* Read from ASCII text file, one line at a time */
     fprintf( stderr, "make_survey> PROCESSING line-by-line...\n" );
     while( sr_readline( sr ) ) {
         int i, k, check;
@@ -350,8 +366,11 @@ main( int argc, char *argv[] )
         }
 
         /* output mock point on sky */
+
         fprintf( fdout, "%10.6f % 10.6f %10.7f %10.7f\n", ra, dec, z, weight );
-        fflush( fdout );
+        if( conf->make_index )
+            fprintf( fdind, "%zu\n", nread - 1 );
+
         nout += 1;
     }
 
@@ -359,6 +378,8 @@ main( int argc, char *argv[] )
 
     /* cleanup / kill */
     fclose( fdout );
+    if( conf->make_index )
+        fclose( fdind );
     sr_kill( sr );
     rng_kill( rng );
     spline_kill( spl );
