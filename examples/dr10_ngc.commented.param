@@ -1,0 +1,93 @@
+# make_survey commented parameter file
+#
+# basic format
+# KEYWORD  VALUE
+#
+# NOTE: any keyword that takes multiple values can be separated
+# by any combination of spaces and/or commas -- it does not matter
+#
+# NOTE: for filenames / strings -- be careful of trailing whitespace!
+
+# remap matrix, see BoxRemap documentation and genremap output
+# look at examples/remap.list7.trim.txt (cached from genremap.cpp)
+# optional: default does no remapping
+remap       1 1 0 , 0 0 1 , 1 0 0
+
+# what to add to the coordinates after remapping: X, Y, Z
+# optional: default does no translation
+translate  -1810.0, -350.0, -10.0
+
+# rotation around x-,y-,z-axis in degrees (and that order)
+# optional: default does no rotation
+rotate      355.0, 0.0, 95.0
+
+# this is a pre-remap rotation on the box in integer number
+# of 90 degree rotations: x y z
+# optional: default does no pre-rotation
+pre_rotate  0 0 0
+
+# lbox: size of the input box in simulation units
+# REQUIRED!
+lbox  2560.0
+
+# omega_m, omega_l : the mass and lambda cosmology components
+# used for to convert comoving distance to redshift
+# REQUIRED!
+omega_m 0.29
+omega_l 0.71
+
+# h: dimensionless hubble parameter whic sets the input units,
+# h=1.0 means the input is Mpc/h
+# REQUIRED!
+hubble  1.0
+
+# the *fixed* redshift of the input object catalog
+# used to scale velocities appropriately for z-distortions
+redshift_input 0.55
+
+# redshift_space adds redshift space distortions based on perculiar velocities
+# set to 0 (off, real space) or 1 (on, redshift space with z-distortions)
+# REQUIRED!
+redshift_space 1
+
+# output parameters of catalog, should be specified
+# min_redshift: defaults to 0.0
+# max_redshift: REQUIRED! (but not sanity checked)
+min_redshift 0.40
+max_redshift 0.75
+
+# set the random seed (only used if output is randomly downsampled)
+# The value is an unsigned int, so sign does not matter as a negative
+# value will simply overflow and wrap around.
+# optional: defaults to some set value
+random_seed 6452
+
+# mangle polygon mask where polygon weight is sky completeness
+# optional: if not set, will not trim catalog by mask
+file_skymask   mask-cmass-dr10v5-N-Anderson.ply
+
+# minimum sky weight to include / exclude regions from the file_skymask.
+# basically, it trims all objects in regions with a lower weight than this
+# optional: defaults to 0.0
+min_sky_weight 0.7
+
+# randomly downsample regions in the file_skymask according to
+# the polygon completeness.
+# set to 0 (off) or 1 (on)
+# optional: defaults to 0 (off)
+downsample_sky 1
+
+# file to adjust radial selection by random downsampling
+# the required file format is series of two columns:  z  frac_to_keep
+# e.g. a line of '0.5 0.9' will set z=0.5 to keep 90% of the input objects
+# values between points are spline interpolated, and any extrapolation
+# sets the fraction to zero (remove all objects).
+# optional: if not set no radial downsampling will occur
+file_redshift_selection  cmass-dr10v5-ngc.zsel
+
+# make an index to map the input to output: a 1-based line number for each object in the input
+# file that makes it into the output catalog. The filename is set by the output file with a
+# '.index' appended to it
+# set to 0 (off) or 1 (on)
+# optional: defaults to 0 (off)
+make_index 0
