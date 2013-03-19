@@ -97,7 +97,7 @@ conf_readfile( char *filename )
 
     sp = sp_init( 18 );
 
-    sp_add_array_sint( sp, "remap", c->u, 9, "1 0 0  0 1 0  0 1 1" );
+    sp_add_array_sint( sp, "remap", c->u, 9, "1 0 0  0 1 0  0 0 1" );
     sp_add_array_sint( sp, "pre_rotate", c->pre_rot, 3, "0 0 0" );
 
     sp_add_array_double( sp, "translate", c->t, 3, "0 0 0" );
