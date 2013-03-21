@@ -17,7 +17,7 @@ remap       1 1 0 , 0 0 1 , 1 0 0
 # optional: default does no translation
 translate  -1810.0, -350.0, -10.0
 
-# rotation around x-,y-,z-axis in degrees (and that order)
+# rotation of box around x-,y-,z-axis in degrees (excuted in that order)
 # optional: default does no rotation
 rotate      355.0, 0.0, 95.0
 
