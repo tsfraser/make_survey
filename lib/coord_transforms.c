@@ -35,6 +35,8 @@ ct_rotate_about_axis( const double theta, double *const v, const int axis )
     double st = sin( theta );
     double ct = cos( theta );
 
+    /* select which axes to manipulate:
+     * basically, not the requested one in the order of X,Y,Z */
     ia = 0;
     for( i = 0; i < 3; i++ ) {
         if( i != axis ) {
@@ -108,6 +110,22 @@ ct_xyz_to_radec( double const *const v, double *ra, double *dec )
     *ra *= RAD2DEG;
     *dec *= RAD2DEG;
     *dec = 90.0 - *dec;
+}
+
+static inline void
+ct_polar_to_xyz( double const az, double const el, double *const x )
+{
+    x[0] = sin( el ) * cos( az );
+    x[1] = sin( el ) * sin( az );
+    x[2] = cos( el );
+}
+
+static inline void
+ct_radec_to_xyz( double const ra, double const dec, double *const x )
+{
+    double az = ra / RAD2DEG;
+    double el = ( 90 - dec ) / RAD2DEG;
+    ct_polar_to_xyz( az, el, x );
 }
 
 #endif

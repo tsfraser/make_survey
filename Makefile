@@ -4,8 +4,9 @@
 # Uncomment to use Intel compiler
 #CXX = icpc
 
-# Uncomment to turn on aggressive optimizations
 OPTFLAGS = -O3
+
+# edit these if gsl-config is not in your default path
 GSL_INC= $(shell gsl-config --cflags)
 GSL_LINK= $(shell gsl-config --libs)
 
@@ -17,9 +18,12 @@ default: make_survey
 
 all: make_survey tools
 
-tools: mply_area mply_polyid mply_trim randbox trim_by_index
+tools: check_survey mply_area mply_polyid mply_trim randbox trim_by_index
 
 make_survey: src/make_survey.cpp lib/cuboid.cpp
+	$(CXX) $(CXXFLAGS) $(GSL_INC) -o $@ $^ $(LDFLAGS) $(GSL_LINK)
+
+check_survey: src/check_survey.cpp lib/cuboid.cpp
 	$(CXX) $(CXXFLAGS) $(GSL_INC) -o $@ $^ $(LDFLAGS) $(GSL_LINK)
 
 mply_area: src/mply_area.c
@@ -44,4 +48,4 @@ bu-clean: clean
 	rm -f src/*~ src/*.bak lib/*~ lib/*.bak 
 
 real-clean: clean
-	rm -f make_survey  mply_area mply_polyid mply_trim randbox trim_by_index
+	rm -f make_survey  check_survey mply_area mply_polyid mply_trim randbox trim_by_index
