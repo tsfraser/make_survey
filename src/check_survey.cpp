@@ -27,6 +27,7 @@
 #include <check_fopen.c>
 
 #include <config.c>
+#include <rng_gsl.c>
 #include <spline_gsl.c>
 #include <coord_transforms.c>
 #include <cosmology.c>
@@ -55,14 +56,16 @@ main( int argc, char *argv[] )
     simple_reader *sr;
 
     CONFIG *conf;
+    void *rng;
     COSMO *cosmo;
     SPLINE *spl;
     double bnd_ra[2], bnd_dec[2], bnd_z[2];
     double min[3], max[3];
     double r[3];
+    int randz = 0;
 
     if( argc != 3 ) {
-        fprintf( stderr, "USAGE:\t%s  CONFIG_FILE  RDZ_IN\n", argv[0] );
+        fprintf( stderr, "USAGE:\t%s  CONFIG_FILE  RDZ_INPUT (Z input optional)\n", argv[0] );
         exit( EXIT_FAILURE );
     }
 
@@ -98,15 +101,8 @@ main( int argc, char *argv[] )
         spl = spline_init( SPLINE_TYPE_CUBIC );
         {
             double z, dc, dz;
-            double zmin = 1e9, zmax = -1e9;
-
-            /* pad redshift bounds by 10% for spline and z-distortions */
-            if( conf->zmin >= 0 ) {
-                zmin = 0.9 * conf->zmin;
-            } else {
-                zmin = 1.1 * conf->zmin;
-            }
-            zmax = 1.1 * conf->zmax;
+            double zmin = conf->zmin;
+            double zmax = conf->zmax;
 
             fprintf( stdout, "check_survey> COSMOLOGY: creating spline (z -> Dc) for z = %g - %g\n",
                      zmin, zmax );
@@ -116,6 +112,11 @@ main( int argc, char *argv[] )
                 spline_data_add( spl, z, dc );  /* forward spline this time */
             }
             spline_data_finalize( spl );
+        }
+
+        if( conf->file_mask ) {
+            fprintf( stdout, "check_survey> IGNORING skymask: %s (not trimming input)\n",
+                     conf->file_mask );
         }
 
         for( i = 0; i < 3; i++ ) {
@@ -130,6 +131,8 @@ main( int argc, char *argv[] )
         bnd_z[1] = DBL_MAX * -1.0;
         bnd_ra[1] = DBL_MAX * -1.0;
         bnd_dec[1] = DBL_MAX * -1.0;
+
+        rng = rng_init( conf->seed );
     }
 
     fprintf( stdout, "check_survey>   CONFIG: %s\n", file_config );
@@ -151,11 +154,31 @@ main( int argc, char *argv[] )
             continue;
 
         check = sscanf( line, "%lf %lf %lf", &ra, &dec, &z );
-        if( check != 3 ) {
-            fprintf( stdout,
-                     "Error: RDZ input error on line %d in file: %s\n",
-                     sr_linenum( sr ), sr_filename( sr ) );
-            exit( EXIT_FAILURE );
+        if( check < 3 ) {
+            z = rng_uniform( rng ) * ( conf->zmax - conf->zmin ) + conf->zmin;
+            randz = 1;
+            if( check < 2 ) {
+                fprintf( stderr,
+                         "Error: RDZ input error on line %d in file: %s\n",
+                         sr_linenum( sr ), sr_filename( sr ) );
+                exit( EXIT_FAILURE );
+            }
+            if( randz < 0 ) {
+                fprintf( stderr,
+                         "Error: RDZ input error on line %d in file: %s\n",
+                         sr_linenum( sr ), sr_filename( sr ) );
+                fprintf( stderr, "Error: both 2 and 3 column input (redshift)!\n" );
+                exit( EXIT_FAILURE );
+            }
+        } else {
+            if( randz > 0 ) {
+                fprintf( stderr,
+                         "Error: RDZ input error on line %d in file: %s\n",
+                         sr_linenum( sr ), sr_filename( sr ) );
+                fprintf( stderr, "Error: both 2 and 3 column input (redshift)!\n" );
+                exit( EXIT_FAILURE );
+            }
+            randz = -1;
         }
 
         nread += 1;
@@ -203,10 +226,12 @@ main( int argc, char *argv[] )
     }
 
     fprintf( stdout, "check_survey> DONE: %zd -> %zd\n", nread, nout );
-    fprintf( stdout, "check_survey> TRIM REDSHIFT: %g < z < %g\n", conf->zmin, conf->zmax );
-    if( conf->file_mask ) {
-        fprintf( stdout, "check_survey> IGNORING skymask: %s (not trimming input)\n",
-                 conf->file_mask );
+    if( randz > 0 ) {
+        fprintf( stdout,
+                 "check_survey> REDSHIFT GENERATED: %g < z < %g (uniformly with seed: %u)\n",
+                 conf->zmin, conf->zmax, conf->seed );
+    } else {
+        fprintf( stdout, "check_survey> TRIM REDSHIFT: %g < z < %g\n", conf->zmin, conf->zmax );
     }
 
     fprintf( stdout, "check_survey> INPUT DATA (TRIMMED): \n" );
@@ -274,13 +299,12 @@ main( int argc, char *argv[] )
 
         fprintf( stdout, "check_survey> INPUT BOUNDING VOLUME: %g\n", vol );
         fprintf( stdout, "check_survey> REMAP BOUNDING VOLUME: %g\n", vol_remap );
-        if( bounded ) {
-            fprintf( stdout, "check_survey> SUGGESTED CENTERING: translate  %g,%g,%g\n",
-                     c[0], c[1], c[2] );
-        }
+        fprintf( stdout, "check_survey> SUGGESTED CENTERING: translate  %g,%g,%g\n",
+                 c[0], c[1], c[2] );
     }
 
     sr_kill( sr );
+    rng_kill( rng );
     spline_kill( spl );
     cosmo_kill( cosmo );
 
