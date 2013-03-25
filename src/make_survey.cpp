@@ -84,6 +84,10 @@ main( int argc, char *argv[] )
     file_config = argv[1];
     file_mock = argv[2];
     file_out = argv[3];
+    if( strcmp( file_config, file_out ) == 0 ) {
+        fprintf( stderr, "Error: OUTPUT file must be different than INPUT!\n" );
+        exit( EXIT_FAILURE );
+    }
     if( strcmp( file_mock, file_out ) == 0 ) {
         fprintf( stderr, "Error: OUTPUT file must be different than INPUT!\n" );
         exit( EXIT_FAILURE );
@@ -114,22 +118,20 @@ main( int argc, char *argv[] )
         r[1] = R.L2 * conf->lbox;
         r[2] = R.L3 * conf->lbox;
 
-        fprintf( stderr, "make_survey> REMAPPING max x: %8.2f to %6.2f\n", conf->lbox, r[0] );
-        fprintf( stderr, "make_survey> REMAPPING max y: %8.2f to %6.2f\n", conf->lbox, r[1] );
-        fprintf( stderr, "make_survey> REMAPPING max z: %8.2f to %6.2f\n", conf->lbox, r[2] );
+        fprintf( stdout, "make_survey> ORIGINAL LBOX = %7.2f\n", conf->lbox );
+        fprintf( stdout, "make_survey> REMAPPING L1 -> %7.2f ( %7.5f )\n", r[0], R.L1 );
+        fprintf( stdout, "make_survey> REMAPPING L2 -> %7.2f ( %7.5f )\n", r[1], R.L2 );
+        fprintf( stdout, "make_survey> REMAPPING L3 -> %7.2f ( %7.5f )\n", r[2], R.L3 );
 
-        fprintf( stderr, "make_survey> TRANSLATE x: %8.2f to %6.2f\n", conf->t[0],
-                 r[0] + conf->t[0] );
-        fprintf( stderr, "make_survey> TRANSLATE y: %8.2f to %6.2f\n", conf->t[1],
-                 r[1] + conf->t[1] );
-        fprintf( stderr, "make_survey> TRANSLATE z: %8.2f to %6.2f\n", conf->t[2],
-                 r[2] + conf->t[2] );
+        fprintf( stderr, "make_survey> TRANSLATE X by %8.2f\n", conf->t[0] );
+        fprintf( stderr, "make_survey> TRANSLATE Y by %8.2f\n", conf->t[1] );
+        fprintf( stderr, "make_survey> TRANSLATE Z by %8.2f\n", conf->t[2] );
 
-        fprintf( stderr, "make_survey> ROTATION about x,y,z in degrees: %g,%g,%g\n",
+        fprintf( stderr, "make_survey> ROTATE about X,Y,Z in degrees: %g,%g,%g\n",
                  conf->rot[0], conf->rot[1], conf->rot[2] );
     }
 
-    /* do all initialization */
+    /* do more initialization */
     {
         /* initialize cosmology */
         cosmo = cosmo_init(  );
@@ -137,7 +139,7 @@ main( int argc, char *argv[] )
         cosmo_set_omega_l( cosmo, conf->omega_l );
         cosmo_set_h( cosmo, 1.0 );
 
-        fprintf( stderr, "make_survey> COSMOLOGY: (Om, Ol, h) = (%g, %g, %.2f)\n",
+        fprintf( stderr, "make_survey> COSMOLOGY: (Om, Ol, h) = (%g, %g, %.3f)\n",
                  cosmo_omega_m( cosmo ), cosmo_omega_l( cosmo ), cosmo_h( cosmo ) );
 
         /* init cosmo spline rad -> z */
