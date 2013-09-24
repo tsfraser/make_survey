@@ -26,6 +26,7 @@ If you use this code in research that results in publications, please cite the f
 
     White, M., Tinker, J., McBride, C.K., 2013, MNRAS, submitted.
     "Mock galaxy catalogs using the quick particle mesh method"
+    http://arxiv.org/abs/1309.5532
 
 
 DEPENDENCIES 
