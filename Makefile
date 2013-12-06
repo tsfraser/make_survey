@@ -14,12 +14,6 @@ CFLAGS= -Wall $(OPTFLAGS) -I./lib
 CXXFLAGS = $(CFLAGS)
 LDFLAGS = -lm
 
-default: make_survey
-
-all: make_survey tools
-
-tools: check_survey mply_area mply_polyid mply_trim randbox trim_by_index
-
 make_survey: src/make_survey.cpp lib/cuboid.cpp
 	$(CXX) $(CXXFLAGS) $(GSL_INC) -o $@ $^ $(LDFLAGS) $(GSL_LINK)
 
@@ -41,11 +35,18 @@ randbox: src/randbox.c
 trim_by_index: src/trim_by_index.c
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
+tools: check_survey mply_area mply_polyid mply_trim randbox trim_by_index
+
+all: make_survey tools
+
+default: make_survey
+
 clean:
 	rm -f *.o
 
 bu-clean: clean
-	rm -f src/*~ src/*.bak lib/*~ lib/*.bak 
+	rm -f *~ *.bak src/*~ src/*.bak lib/*~ lib/*.bak 
 
 real-clean: clean
 	rm -f make_survey  check_survey mply_area mply_polyid mply_trim randbox trim_by_index
+
