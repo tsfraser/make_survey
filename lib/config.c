@@ -27,7 +27,21 @@ typedef struct {
 
     char *file_zsel;            /* redshift selection file */
 
-    int make_index;             /* index file */
+    int make_info;              /* Include additional "Value-Added Columns" in .info file
+                                   index:      line number of input mock (1-based)
+                                   comp:       completeness (weight in MANGLE file), range is 0-1 typically
+                                   z_real:     real redshift (no distortion)
+                                   z_redshift: redshift with z-distortion
+                                   mass_halo:  mass of parent central halo in Msun units
+                                   flag_sat:   is a satellite galaxy?  (0 = no, 1 = yes)
+                                   id_halo:    ID of parent halo from input halo catalog
+                                   make_info = 0 : DO NOT CREATE
+                                   make_info = 1 : index only
+                                   make_info = 2 : index, comp
+                                   make_info = 4 : index, comp, z_real, z_redshift
+                                   make_info = 6 : index, comp, z_real, z_redshift, mass_halo, flag_sat
+                                   make_info = 7 : index, comp, z_real, z_redshift, mass_halo, flag_sat, id_halo
+                                 */
 
 } CONFIG;
 
@@ -118,7 +132,7 @@ conf_readfile( char *filename )
     sp_add_sint( sp, "downsample_sky", &c->downsample_sky, "0" );
     sp_add_uint( sp, "random_seed", &c->seed, "-12345" );
     sp_add_sint( sp, "redshift_space", &c->zspace, NULL );
-    sp_add_sint( sp, "make_index", &c->make_index, "0" );
+    sp_add_sint( sp, "make_info", &c->make_info, "0" );
 
     sp_set_defaults( sp );
     n = sp_parse_file( sp, filename );

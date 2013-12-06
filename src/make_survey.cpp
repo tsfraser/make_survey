@@ -56,7 +56,7 @@ main( int argc, char *argv[] )
     char *file_config = NULL;
     char *file_mock = NULL;
     char *file_out = NULL;
-    FILE *fdout, *fdind;
+    FILE *fdout, *fdi;
 
     size_t nread = 0, nout = 0;
 
@@ -71,13 +71,13 @@ main( int argc, char *argv[] )
     MANGLE_PLY *ply;
     double rmin, rmax;
 
-    fdind = NULL;
+    fdi = NULL;
     ply = NULL;
     rng = NULL;
     zsel = NULL;
 
     if( argc != 4 ) {
-        fprintf( stderr, "USAGE:\t%s  CONFIG_FILE  MOCK_IN  RDZW_OUT\n", argv[0] );
+        fprintf( stderr, "USAGE:\t%s  CONFIG_FILE  MOCK_IN  RDZ_OUT\n", argv[0] );
         exit( EXIT_FAILURE );
     }
 
@@ -212,30 +212,33 @@ main( int argc, char *argv[] )
     fprintf( stderr, "make_survey>   CONFIG: %s\n", file_config );
     fprintf( stderr, "make_survey>   INPUT:  %s\n", sr_filename( sr ) );
     fprintf( stderr, "make_survey>   OUTPUT: %s\n", file_out );
-    if( conf->make_index ) {
-        char *file_index;
+    if( conf->make_info ) {
+        char *file_info;
         size_t len;
 
         len = strlen( file_out );
-        file_index = ( char * ) check_alloc( len + 10, sizeof( char ) );
-        sprintf( file_index, "%s.index", file_out );
-        fdind = check_fopen( file_index, "w" );
-        fprintf( fdind, "# INDEX FROM: %s (1-based)\n", file_mock );
-        fprintf( fdind, "# FOR OUTPUT: %s\n", file_out );
-        fprintf( fdind, "# USING CONF: %s\n", file_config );
-        fprintf( stderr, "make_survey>   INDEX:  %s\n", file_index );
-        CHECK_FREE( file_index );
+        file_info = ( char * ) check_alloc( len + 10, sizeof( char ) );
+        sprintf( file_info, "%s.info", file_out );
+        fdi = check_fopen( file_info, "w" );
+        fprintf( fdi, "# INDEX FROM: %s (1-based)\n", file_mock );
+        fprintf( fdi, "# FOR OUTPUT: %s\n", file_out );
+        fprintf( fdi, "# USING CONF: %s\n", file_config );
+        fprintf( stderr, "make_survey>   INFO:   %s\n", file_info );
+        CHECK_FREE( file_info );
     }
 
     /* Read from ASCII text file, one line at a time */
     fprintf( stderr, "make_survey> PROCESSING line-by-line...\n" );
     while( sr_readline( sr ) ) {
-        int i, k, check;
+        int i, k, ncols_in;
         double x[3], v[3];      /* original coordinates */
         double rx[3], rv[3];    /* remapped coordinates */
         double z, rad, vel;     /* radius and velocity */
         double ran1 = 0.0, ran2 = 0.0, prob = 1.0;
+        double dz, z_real, z_red;
         double ra, dec, weight = 1.0;
+        int flag_sat, id_halo;
+        double mass_halo;
 
         if( sr_line_isempty( sr ) )
             continue;
@@ -244,10 +247,12 @@ main( int argc, char *argv[] )
         if( '#' == line[0] )
             continue;
 
-        check = sscanf( line, "%lf %lf %lf %lf %lf %lf", &x[0], &x[1], &x[2], &v[0], &v[1], &v[2] );
+        ncols_in = sscanf( line, "%lf %lf %lf %lf %lf %lf %lf %i %i",
+                           &x[0], &x[1], &x[2], &v[0], &v[1], &v[2],
+                           &mass_halo, &flag_sat, &id_halo );
 
-        if( check != 6 ) {
-            if( check < 3 ) {
+        if( ncols_in != 6 ) {
+            if( ncols_in < 3 ) {
                 fprintf( stderr,
                          "Error: mock input error on line %d in file: %s\n",
                          sr_linenum( sr ), sr_filename( sr ) );
@@ -314,14 +319,16 @@ main( int argc, char *argv[] )
         if( rad > rmax )
             continue;
 
-        z = spline_eval( spl, rad );
+        z_real = spline_eval( spl, rad );
 
-        /*  add redshift distortion  */
-        if( conf->zspace ) {
-            /* need velocity in physical units */
-            double dz = vel * ( 1.0 + conf->zin ) / SPEED_OF_LIGHT;
-            z += dz;
-        }
+        /* redshift distortion: need velocity in physical units */
+        dz = vel * ( 1.0 + conf->zin ) / SPEED_OF_LIGHT;
+        z_red = z_real + dz;
+
+        if( conf->zspace )
+            z = z_red;
+        else
+            z = z_real;
 
         /* trim by redshift */
         if( z > conf->zmax )
@@ -360,7 +367,7 @@ main( int argc, char *argv[] )
             if( ipoly < 0 )
                 continue;
 
-            /* since we exist, let's look up the associated weight */
+            /* since we exist, let's look up the associated completeness weight */
             weight = mply_weight_from_index( ply, ipoly );
             if( weight < conf->min_sky_weight )
                 continue;
@@ -373,9 +380,32 @@ main( int argc, char *argv[] )
         }
 
         /* output mock point on sky */
-        fprintf( fdout, "%10.6f % 10.6f %10.7f %10.7f\n", ra, dec, z, weight );
-        if( conf->make_index )
-            fprintf( fdind, "%zu\n", nread );
+        fprintf( fdout, "%10.6f % 10.6f %10.7f\n", ra, dec, z );
+        if( conf->make_info > 0 ) {
+            if( conf->make_info >= 1 ) {
+                fprintf( fdi, "%10zu", nread ); /* this doubles as index */
+            }
+            if( conf->make_info >= 2 ) {
+                fprintf( fdi, " %10.7f", weight );
+            }
+
+            /* the additional columns only make sense if they exist in input! */
+            if( conf->make_info >= 4 && ncols_in > 3 ) {
+                /* calculations require input velocity */
+                fprintf( fdi, " %10.7f", z_real );
+                fprintf( fdi, " %10.7f", z_red );
+            }
+            if( conf->make_info >= 6 && ncols_in > 7 ) {
+                /* info directly from input file */
+                fprintf( fdi, " %12.6e", mass_halo );
+                fprintf( fdi, " %1i", flag_sat );
+            }
+            if( conf->make_info >= 7 && ncols_in > 8 ) {
+                /* info directly from input file */
+                fprintf( fdi, " %10i", id_halo );
+            }
+            fprintf( fdi, "\n" );
+        }
 
         nout += 1;
     }
@@ -384,8 +414,8 @@ main( int argc, char *argv[] )
 
     /* cleanup / kill */
     fclose( fdout );
-    if( conf->make_index )
-        fclose( fdind );
+    if( conf->make_info )
+        fclose( fdi );
     sr_kill( sr );
     rng_kill( rng );
     spline_kill( spl );
