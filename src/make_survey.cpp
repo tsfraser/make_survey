@@ -234,7 +234,7 @@ main( int argc, char *argv[] )
         double x[3], v[3];      /* original coordinates */
         double rx[3], rv[3];    /* remapped coordinates */
         double z, rad, vel;     /* radius and velocity */
-        double ran, prob;
+        double ran1 = 0.0, ran2 = 0.0, prob = 1.0;
         double ra, dec, weight = 1.0;
 
         if( sr_line_isempty( sr ) )
@@ -257,6 +257,14 @@ main( int argc, char *argv[] )
         }
 
         nread += 1;
+
+        /* make RNGs stable: same input catalog and RNG SEED will 
+         * now produce same RNG for each object */
+        if( zsel != NULL )
+            ran1 = rng_uniform( rng );
+
+        if( conf->downsample_sky )
+            ran2 = rng_uniform( rng );
 
         /* Normalize coordinates to [0,1] */
         for( i = 0; i < 3; i++ ) {
@@ -324,10 +332,8 @@ main( int argc, char *argv[] )
         /* check redshift selection */
         if( zsel != NULL ) {
             prob = zsel_eval( zsel, z );
-            if( prob < 1.0 ) {
-                ran = rng_uniform( rng );
-                if( ran > prob )
-                    continue;
+            if( prob < 1.0 && ran1 > prob ) {
+                continue;
             }
         }
 
@@ -361,8 +367,7 @@ main( int argc, char *argv[] )
 
             /* downsample to the weight */
             if( conf->downsample_sky ) {
-                ran = rng_uniform( rng );
-                if( ran > weight )
+                if( ran2 > weight )
                     continue;
             }
         }
