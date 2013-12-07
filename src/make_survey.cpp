@@ -234,9 +234,9 @@ main( int argc, char *argv[] )
         double x[3], v[3];      /* original coordinates */
         double rx[3], rv[3];    /* remapped coordinates */
         double z, rad, vel;     /* radius and velocity */
-        double ran1 = 0.0, ran2 = 0.0, prob = 1.0;
-        double dz, z_real, z_red;
+        double delta_z, z_real, z_red;
         double ra, dec, weight = 1.0;
+        double ran1 = 0.0, ran2 = 0.0, prob = 1.0;
         int flag_sat, id_halo;
         double mass_halo;
 
@@ -251,7 +251,7 @@ main( int argc, char *argv[] )
                            &x[0], &x[1], &x[2], &v[0], &v[1], &v[2],
                            &mass_halo, &flag_sat, &id_halo );
 
-        if( ncols_in != 6 ) {
+        if( ncols_in < 6 ) {
             if( ncols_in < 3 ) {
                 fprintf( stderr,
                          "Error: mock input error on line %d in file: %s\n",
@@ -322,8 +322,8 @@ main( int argc, char *argv[] )
         z_real = spline_eval( spl, rad );
 
         /* redshift distortion: need velocity in physical units */
-        dz = vel * ( 1.0 + conf->zin ) / SPEED_OF_LIGHT;
-        z_red = z_real + dz;
+        delta_z = vel * ( 1.0 + conf->zin ) / SPEED_OF_LIGHT;
+        z_red = z_real + delta_z;
 
         if( conf->zspace )
             z = z_red;
