@@ -1,0 +1,29 @@
+remap       1 1 0 , 0 0 1 , 1 0 0
+#translate  -1810.0, -350.0, -10.0 
+translate  -3584.0, -350.0, -10.0 
+rotate      355.0, 0.0, 95.0 
+pre_rotate  0 0 0 
+
+lbox  5120.0 
+omega_m 0.31
+omega_l 0.69
+hubble  1.0
+redshift_input 1.55
+
+min_redshift 0.8
+max_redshift 2.3 
+redshift_space 1
+
+random_seed -6452
+
+#file_skymask eboss_footprint_ngc.ply
+file_skymask   mask-QSO-N-eboss_v0.9.ply
+min_sky_weight 0.0
+downsample_sky 1 
+
+#file_redshift_selection  redshift_downselect_unity.dat
+file_redshift_selection  redshift_downselect_v0.9_QSO_NGC.dat
+
+powspec 10000.0
+
+make_info 7
