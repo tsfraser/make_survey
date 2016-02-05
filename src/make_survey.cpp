@@ -53,6 +53,9 @@
 int
 main( int argc, char *argv[] )
 {
+  int ngaltot;
+  float nbartot, wfkp, nbar_current;
+
     char *file_config = NULL;
     char *file_mock = NULL;
     char *file_out = NULL;
@@ -207,11 +210,21 @@ main( int argc, char *argv[] )
 
     }
 
+    
+
     sr = sr_init( file_mock );
     fdout = check_fopen( file_out, "w" );
     fprintf( stderr, "make_survey>   CONFIG: %s\n", file_config );
     fprintf( stderr, "make_survey>   INPUT:  %s\n", sr_filename( sr ) );
     fprintf( stderr, "make_survey>   OUTPUT: %s\n", file_out );
+
+    // JLT - how many lines in the box?
+    ngaltot = 0;
+    while(sr_readline(sr))ngaltot++;
+    nbartot = ngaltot/pow(conf->lbox,3.0);
+    fprintf(stderr,"make_survey> total mock gals: %d nbar=%e\n",ngaltot,nbartot);
+    sr = sr_init( file_mock );
+
     if( conf->make_info ) {
         char *file_info;
         size_t len;
@@ -343,6 +356,7 @@ main( int argc, char *argv[] )
                 continue;
             }
         }
+	nbar_current = nbartot*prob;
 
         /* so all redshift / radial selection is now done, check sky next */
 
@@ -380,7 +394,11 @@ main( int argc, char *argv[] )
         }
 
         /* output mock point on sky */
-        fprintf( fdout, "%10.6f % 10.6f %10.7f\n", ra, dec, z );
+        //fprintf( fdout, "%10.6f % 10.6f %10.7f\n", ra, dec, z );
+	// JLT adds stuff
+	wfkp = 1/(1+nbar_current*conf->powspec);
+
+        fprintf( fdout, "%10.6f %10.6f %10.7f %10.7f  %.5e  %.5e\n", ra, dec, z ,weight, nbar_current, wfkp);
         if( conf->make_info > 0 ) {
             if( conf->make_info >= 1 ) {
                 fprintf( fdi, "%10zu", nread ); /* this doubles as index */

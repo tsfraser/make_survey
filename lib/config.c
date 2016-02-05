@@ -27,6 +27,8 @@ typedef struct {
 
     char *file_zsel;            /* redshift selection file */
 
+  double powspec;  /* power spectrum value for the FKP weights */
+
     int make_info;              /* Include additional "Value-Added Columns" in .info file
                                    index:      line number of input mock (1-based)
                                    comp:       completeness (weight in MANGLE file), range is 0-1 typically
@@ -75,6 +77,7 @@ conf_init( void )
     c->omega_m = 0.0;
     c->omega_l = 0.0;
     c->hubble = 1.0;
+    c->powspec = 0.0;
 
     c->file_mask = NULL;
     c->file_zsel = NULL;
@@ -109,7 +112,7 @@ conf_readfile( char *filename )
     c->file_mask = ( char * ) check_alloc( filename_length, sizeof( char ) );
     c->file_zsel = ( char * ) check_alloc( filename_length, sizeof( char ) );
 
-    sp = sp_init( 18 );
+    sp = sp_init( 19 );
 
     sp_add_array_sint( sp, "remap", c->u, 9, "1 0 0  0 1 0  0 0 1" );
     sp_add_array_sint( sp, "pre_rotate", c->pre_rot, 3, "0 0 0" );
@@ -128,6 +131,9 @@ conf_readfile( char *filename )
     sp_add_double( sp, "max_redshift", &c->zmax, NULL );
     sp_add_double( sp, "min_redshift", &c->zmin, "0.0" );
     sp_add_double( sp, "min_sky_weight", &c->min_sky_weight, "0.0" );
+
+    //JLT
+    sp_add_double( sp, "powspec", &c->powspec, NULL );
 
     sp_add_sint( sp, "downsample_sky", &c->downsample_sky, "0" );
     sp_add_uint( sp, "random_seed", &c->seed, "-12345" );
