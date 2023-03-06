@@ -140,10 +140,12 @@ main( int argc, char *argv[] )
         cosmo = cosmo_init(  );
         cosmo_set_omega_m( cosmo, conf->omega_m );
         cosmo_set_omega_l( cosmo, conf->omega_l );
-        cosmo_set_h( cosmo, 1.0 );
+        cosmo_set_h( cosmo, conf->hubble );
+        cosmo_set_w0( cosmo, conf->w0);
+        cosmo_set_wa( cosmo, conf->wa);
 
-        fprintf( stderr, "make_survey> COSMOLOGY: (Om, Ol, h) = (%g, %g, %.3f)\n",
-                 cosmo_omega_m( cosmo ), cosmo_omega_l( cosmo ), cosmo_h( cosmo ) );
+        fprintf( stderr, "make_survey> COSMOLOGY: (Om, Ol, h, w0, wa) = (%g, %g, %.3f,%.3f,%.3f)\n",
+                 cosmo_omega_m( cosmo ), cosmo_omega_l( cosmo ), cosmo_h( cosmo ),cosmo_w0( cosmo ), cosmo_wa( cosmo) );
 
         /* init cosmo spline rad -> z */
         spl = spline_init( SPLINE_TYPE_CUBIC );
@@ -163,7 +165,7 @@ main( int argc, char *argv[] )
             /* these are used for an initial trim! */
             rmin = cosmo_dist_co_los( cosmo, zmin );
             rmax = cosmo_dist_co_los( cosmo, zmax );
-
+            printf("rmin,rmax %4.4f %4.4f zmin,zmax %4.4f %4.4f\n",rmin,rmax,zmin,zmax);
             fprintf( stderr, "make_survey> COSMOLOGY: creating spline (Dc -> z) for z = %g - %g\n",
                      zmin, zmax );
             fprintf( stderr, "make_survey> REDSHIFT SPACE OUTPUT: %s\n",
@@ -174,6 +176,7 @@ main( int argc, char *argv[] )
             dz = ( zmax - zmin ) / ( NSPLINE - 1 );
             for( z = zmin, i = 0; i < NSPLINE; i++, z += dz ) {
                 dc = cosmo_dist_co_los( cosmo, z );
+                printf("Spline: dc and z %4.4lf %4.4f\n",dc,z);
                 spline_data_add( spl, dc, z );  /* it's actually a reverse spline */
             }
             spline_data_finalize( spl );
@@ -323,7 +326,11 @@ main( int argc, char *argv[] )
         /* get distance and peculiar velocity of point, these should be rotationally invariant */
         rad = ct_vec_mag( x );
         vel = ct_vec_dot( v, x ) / rad;
-
+        printf("N_Read: %4.2lu \n",nread);
+        printf("XYZ %4.4f %4.4f %4.4f \n",x[0],x[1],x[2]);
+        printf("get dist and pecvel floats: %4.2f %4.2f \n", rad,vel);
+        ct_xyz_to_radec(x,&ra,&dec);
+        
         /* let's see if we pass redshift tests */
 
         /* radial comoving distance -> redshift  */
@@ -333,16 +340,16 @@ main( int argc, char *argv[] )
             continue;
 
         z_real = spline_eval( spl, rad );
-
+        printf ("get z_real float: %4.4f \n",z_real);
         /* redshift distortion: need velocity in physical units */
         delta_z = vel * ( 1.0 + conf->zin ) / SPEED_OF_LIGHT;
         z_red = z_real + delta_z;
-
+        printf("rsd redshift:%4.4f \n",z_red);
         if( conf->zspace )
             z = z_red;
         else
             z = z_real;
-
+        printf("just trying radecz from coords... %4.4f %4.4f %4.4f \n",ra,dec,z);
         /* trim by redshift */
         if( z > conf->zmax )
             continue;
@@ -371,7 +378,7 @@ main( int argc, char *argv[] )
 
         /* project onto sky: (x,y,z) -> (ra,dec) */
         ct_xyz_to_radec( x, &ra, &dec );
-
+        printf("RA,DEC,Z: %4.2f %4.2f %4.4f \n",ra, dec, z);
         /* check mangle mask  */
         if( ply != NULL ) {
             MANGLE_INT ipoly;
@@ -397,6 +404,7 @@ main( int argc, char *argv[] )
         //fprintf( fdout, "%10.6f % 10.6f %10.7f\n", ra, dec, z );
 	// JLT adds stuff
 	wfkp = 1/(1+nbar_current*conf->powspec);
+
 
         fprintf( fdout, "%10.6f %10.6f %10.7f %10.7f  %.5e  %.5e\n", ra, dec, z ,weight, nbar_current, wfkp);
         if( conf->make_info > 0 ) {

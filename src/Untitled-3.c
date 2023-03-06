@@ -116,7 +116,7 @@ conf_readfile( char *filename )
     c->file_mask = ( char * ) check_alloc( filename_length, sizeof( char ) );
     c->file_zsel = ( char * ) check_alloc( filename_length, sizeof( char ) );
 
-    sp = sp_init( 21 );
+    sp = sp_init( 19 );
 
     sp_add_array_sint( sp, "remap", c->u, 9, "1 0 0  0 1 0  0 0 1" );
     sp_add_array_sint( sp, "pre_rotate", c->pre_rot, 3, "0 0 0" );

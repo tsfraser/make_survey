@@ -1,0 +1,39 @@
+import matplotlib as mpl
+import numpy as np
+import matplotlib.pyplot as plt
+from pathlib import Path
+import os
+import argparse
+
+os.getcwd()
+
+mpl.rcParams['xtick.direction'] = 'in'
+mpl.rcParams['ytick.direction'] = 'in'
+mpl.rcParams['xtick.top'] = True
+mpl.rcParams['ytick.right'] = True
+mpl.rcParams['text.usetex'] = True
+mpl.rcParams['ytick.labelsize']=30
+mpl.rcParams['xtick.labelsize']=30
+mpl.rcParams['xtick.major.size'] = 20.0
+mpl.rcParams['xtick.minor.size'] = 20.0
+mpl.rcParams['ytick.major.size'] = 20.0
+mpl.rcParams['ytick.minor.size'] = 20.0
+
+
+def plotting_analytic(X_LOS,Y_LOS,Z_LOS,label='c000'):
+
+
+
+    return None
+
+def plotting_no_cov(data,label='c000'):
+
+
+    return None
+
+def plotting_wcov(data,cov,label='c000'):
+
+    return None
+
+
+    

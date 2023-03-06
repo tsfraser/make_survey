@@ -93,9 +93,10 @@ main( int argc, char *argv[] )
         cosmo_set_omega_m( cosmo, conf->omega_m );
         cosmo_set_omega_l( cosmo, conf->omega_l );
         cosmo_set_h( cosmo, 1.0 );
-
-        fprintf( stdout, "check_survey> COSMOLOGY: (Om, Ol, h) = (%g, %g, %.3f)\n",
-                 cosmo_omega_m( cosmo ), cosmo_omega_l( cosmo ), cosmo_h( cosmo ) );
+        cosmo_set_w0( cosmo, conf->w0);
+        cosmo_set_wa( cosmo, conf->wa);
+        fprintf( stdout, "check_survey> COSMOLOGY: (Om, Ol, h, w0, wa) = (%g, %g, %.3f,%.3f,%.3f)\n",
+                 cosmo_omega_m( cosmo ), cosmo_omega_l( cosmo ), cosmo_h( cosmo ),cosmo_w0( cosmo ), cosmo_wa( cosmo) );
 
         /* init cosmo spline rad -> z */
         spl = spline_init( SPLINE_TYPE_CUBIC );
