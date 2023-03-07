@@ -156,7 +156,7 @@ cosmo_chi( COSMO const *const c, const double z )
     /*printf("w0wa floats: %4.2f   %4.2f", w0,wa); */
     ok = 1.0 - om - ol;
     zp1 = z + 1.0;
-    return sqrt( om * pow3( zp1 ) + ok * pow2( zp1 ) + ol*powf(zp1, 3*(1+w0+wa*(1-1/zp1)) ) );
+    return sqrt( om * pow3( zp1 ) + ok * pow2( zp1 ) + ol*powf(zp1,3*(1+w0+wa))*exp(-3*wa*(1-1/zp1))); /* *powf(zp1, 3*(1+w0+wa*(1-1/zp1)) ) ); */
 }
 
 /* cosmological distance integrand : CAN NOT INLINE! */

@@ -171,7 +171,7 @@ main( int argc, char *argv[] )
             fprintf( stderr, "make_survey> REDSHIFT SPACE OUTPUT: %s\n",
                      conf->zspace ? "ON" : "OFF" );
             fprintf( stderr, "make_survey> TRIM REDSHIFT: %g < z < %g\n", conf->zmin, conf->zmax );
-            fprintf( stderr, "make_survey> TRIM DISTANCE: %g < r < %g\n", rmin, rmax );
+            fprintf( stderr, "make_survey> TRIM DISTANCE [trim redshift with a 10 percent buffer!]: %g < r < %g\n", rmin, rmax );
 
             dz = ( zmax - zmin ) / ( NSPLINE - 1 );
             for( z = zmin, i = 0; i < NSPLINE; i++, z += dz ) {
