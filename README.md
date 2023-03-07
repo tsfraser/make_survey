@@ -79,7 +79,7 @@ USAGE
 
     ./make_survey  CONFIG_FILE  MOCK_IN  RDZW_OUT
 
- `CONFIG_FILE`: Defines most input variables, files, and steps. See `examples/dr10_ngc.commented.param` in the source for keyword descriptions.
+ `CONFIG_FILE`: Defines most input variables, files, and steps. See `examples/AbacusSummit_c110_params.param` in the source for keyword descriptions that includes the updated w0, wa functionality. For flat lambda CDM, use w0 = -1.0, wa = 0.0 .
 
  `MOCK_IN`: ASCII input mock file: one object per line with the first 6 columns being positions (3) and velocities (3).
     Requires at least 3 columns of input (redshift space output requires at least 6 columns).
