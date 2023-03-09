@@ -329,7 +329,7 @@ main( int argc, char *argv[] )
         /*printf("N_Read: %4.2lu \n",nread);
         printf("XYZ %4.4f %4.4f %4.4f \n",x[0],x[1],x[2]);
         printf("get dist and pecvel floats: %4.2f %4.2f \n", rad,vel);*/
-        ct_xyz_to_radec(x,&ra,&dec);
+
         
         /* let's see if we pass redshift tests */
 
